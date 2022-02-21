@@ -13,7 +13,7 @@ public class Art {
     private String painter;
     private String artName;
     private String detail;
-    private Long price;
+    private double price;
     private String nftAdd;
     private String paint;
     private Boolean sold = false;
