@@ -11,6 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @Document(collection = "article")
 public class Article {
+    private Long articleId;
     private ObjectId userId;
     private String identity;
     private String title;
