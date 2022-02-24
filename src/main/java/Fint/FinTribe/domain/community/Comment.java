@@ -5,11 +5,13 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
 @Document(collection = "comment")
 public class Comment {
+    private List<Integer> commentId;
     private String content;
     private ObjectId userId;
     private String identity;
