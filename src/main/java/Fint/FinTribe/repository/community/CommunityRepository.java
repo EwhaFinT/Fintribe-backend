@@ -9,5 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface CommunityRepository extends MongoRepository<Community, ObjectId> {
-    Optional<Community> findByArtId(ObjectId objectId);
+    @Override
+    Optional<Community> findById(ObjectId objectId);
+    Optional<Community> findByArtIdAndIsDeleted(ObjectId objectId, Boolean isDeleted);
 }
