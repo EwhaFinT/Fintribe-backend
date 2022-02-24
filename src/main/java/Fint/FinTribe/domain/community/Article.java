@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Builder
+@AllArgsConstructor
 @Document(collection = "article")
 public class Article {
     private ObjectId userId;
