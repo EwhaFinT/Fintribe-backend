@@ -1,7 +1,9 @@
 package Fint.FinTribe.controller;
 
 import Fint.FinTribe.payload.request.ArticleRequest;
+import Fint.FinTribe.payload.request.CommentRequest;
 import Fint.FinTribe.payload.request.ReviseArticleRequest;
+import Fint.FinTribe.payload.request.ReviseCommentRequest;
 import Fint.FinTribe.service.community.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @RequestMapping("/v1")
 @RestController
@@ -37,6 +40,24 @@ public class CommunityController {
     @DeleteMapping("/delete-article")
     public ResponseEntity<?> deleteArticle(@RequestParam @Valid Long articleId, @RequestParam @Valid ObjectId communityId){
         communityService.deleteArticle(articleId, communityId);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/comment")
+    public ResponseEntity<?> createComment(@RequestBody @Valid CommentRequest commentRequest){
+        communityService.createComment(commentRequest.getUserId(), commentRequest.getArticleId(), commentRequest.getTagUser(), commentRequest.getContent(), commentRequest.getCommunityId(), commentRequest.getTagCommentId());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/revise-comment")
+    public ResponseEntity<?> patchComment(@RequestBody @Valid ReviseCommentRequest commentRequest){
+        communityService.patchComment(commentRequest.getArticleId(), commentRequest.getCommentId(), commentRequest.getTagUser(), commentRequest.getContent(), commentRequest.getCommunityId(), commentRequest.getTagCommetId());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete-comment")
+    public ResponseEntity<?> deleteComment(@RequestParam @Valid Long articleId, @RequestParam @Valid List<Integer> commentId, @RequestParam @Valid ObjectId communityId, @RequestParam @Valid List<Integer> tagCommentId){
+        communityService.deleteComment(articleId, commentId, communityId, tagCommentId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }
