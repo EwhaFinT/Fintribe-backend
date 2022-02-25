@@ -19,5 +19,6 @@ public class Article {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
-    private List<List<Comment>> comments;
+    private List<Comment> comments;
+    private List<ReComment> reComments;
 }
