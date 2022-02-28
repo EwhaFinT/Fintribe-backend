@@ -1,6 +1,7 @@
 package Fint.FinTribe.domain.art;
 
 import lombok.*;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
@@ -9,7 +10,8 @@ import java.util.List;
 @Builder
 @Document(collection = "art")
 public class Art {
-    private Long artId;
+    @Id
+    private Object artId;
     private String painter;
     private String artName;
     private String detail;

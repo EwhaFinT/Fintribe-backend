@@ -12,7 +12,7 @@ import java.util.List;
 public class User {
     @Id
     private Object userId;
-    private List<Long> artId;
+    private List<Object> artId;
     private String identity;
     private String pw;
     private String wallet;
