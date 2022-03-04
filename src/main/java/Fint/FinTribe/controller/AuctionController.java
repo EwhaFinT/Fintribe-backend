@@ -10,6 +10,7 @@ import Fint.FinTribe.service.AuctionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -39,5 +40,11 @@ public class AuctionController {
     public ResponseEntity<?> getPricelist(@Valid @RequestBody PricelistRequest pricelistRequest) {
         PricelistResponse pricelistResponse = auctionService.getPricelist(pricelistRequest);
         return new ResponseEntity<>(pricelistResponse, HttpStatus.OK);
+    }
+
+    @Scheduled(cron="0 0 0 * * *", zone="Asia/Seoul")
+    public void startAuction() {
+        // 결제
+        // ==== 다음 경매 시작 ====
     }
 }
