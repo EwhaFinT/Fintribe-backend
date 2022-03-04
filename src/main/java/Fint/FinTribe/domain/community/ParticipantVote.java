@@ -1,6 +1,7 @@
 package Fint.FinTribe.domain.community;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -9,7 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 @Document(collection = "participant_vote")
 public class ParticipantVote {
-    private Long userId;
+    private ObjectId userId;
     private Boolean choice;
     private LocalDateTime participatedAt;
     private Float ratio;
