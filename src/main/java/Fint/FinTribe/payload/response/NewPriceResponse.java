@@ -1,10 +1,11 @@
 package Fint.FinTribe.payload.response;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 
 @Getter
 @AllArgsConstructor
 public class NewPriceResponse {
     @NonNull
-    private Object priceId;
+    private ObjectId priceId;
 }
