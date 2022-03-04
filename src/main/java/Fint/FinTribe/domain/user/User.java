@@ -1,6 +1,7 @@
 package Fint.FinTribe.domain.user;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -11,8 +12,8 @@ import java.util.List;
 @Document(collection = "user")
 public class User {
     @Id
-    private Object userId;
-    private List<Object> artId;
+    private ObjectId userId;
+    private List<ObjectId> artId;
     private String identity;
     private String pw;
     private String wallet;
