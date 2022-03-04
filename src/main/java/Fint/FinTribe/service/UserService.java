@@ -36,8 +36,8 @@ public class UserService {
     // 2. 로그인
     public LoginResponse loginUser(LoginRequest loginRequest) {
         Optional<User> user = findByIdentity(loginRequest.getIdentity());
-        if(user.isEmpty()) return new LoginResponse(0, "해당 아이디가 존재하지 않습니다."); // 해당 아이디가 존재하지 않음
-        if(!securityConfig.passwordEncoder().matches(loginRequest.getPassword(), user.get().getPw())) return new LoginResponse(1, "비밀번호가 일치하지 않습니다."); // 비밀번호가 일치하지 않음
+        if(user.isEmpty()) return new LoginResponse(null, "해당 아이디가 존재하지 않습니다."); // 해당 아이디가 존재하지 않음
+        if(!securityConfig.passwordEncoder().matches(loginRequest.getPassword(), user.get().getPw())) return new LoginResponse(null, "비밀번호가 일치하지 않습니다."); // 비밀번호가 일치하지 않음
         return new LoginResponse(user.get().getUserId(), "로그인에 성공했습니다.");
     }
 
