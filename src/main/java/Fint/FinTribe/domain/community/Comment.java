@@ -1,6 +1,7 @@
 package Fint.FinTribe.domain.community;
 
 import lombok.*;
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -10,10 +11,10 @@ import java.time.LocalDateTime;
 @Document(collection = "comment")
 public class Comment {
     private String content;
-    private Long userId;
+    private ObjectId userId;
     private String identity;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Long tagUser;
-    private Boolean isDeleted = false;
+    private ObjectId tagUser;
+    private Boolean isDeleted;
 }
