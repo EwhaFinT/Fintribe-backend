@@ -3,6 +3,9 @@ package Fint.FinTribe.service;
 import Fint.FinTribe.domain.art.Art;
 import Fint.FinTribe.domain.art.ArtRepository;
 import Fint.FinTribe.domain.auction.*;
+import Fint.FinTribe.domain.auctionDate.AuctionDate;
+import Fint.FinTribe.domain.auctionDate.AuctionDateRepository;
+import Fint.FinTribe.domain.user.UserRespository;
 import Fint.FinTribe.payload.request.NewPriceRequest;
 import Fint.FinTribe.payload.request.ParticipateAuctionRequest;
 import Fint.FinTribe.payload.request.PricelistRequest;
@@ -23,41 +26,43 @@ public class AuctionService {
     private final AuctionRepository auctionRepository;
     private final ParticipantAuctionRepository participantAuctionRepository;
     private final PriceRepository priceRepository;
-    //private final UserRespository userRespository;
+    private final UserRespository userRespository;
     private final ArtRepository artRepository;
+    private final AuctionDateRepository auctionDateRepository;
+
+    public HashMap<ObjectId, Price> auctionMap = new HashMap<ObjectId, Price>();
 
     // 1. 새로운 경매 가격 제안
     public NewPriceResponse newPrice(NewPriceRequest newPriceRequest) {
         // 시작 경매가 확인 & 현재 상한가 확인
         PricelistResponse pricelistResponse = getPricelist(new PricelistRequest(newPriceRequest.getAuctionId()));
-        if(pricelistResponse.getPrice() > newPriceRequest.getAuctionPrice()) return new NewPriceResponse(0);
+        if(pricelistResponse.getPrice() > newPriceRequest.getAuctionPrice()) return new NewPriceResponse(null);
         // ==== 잔액 검사 ====
 
         // 가격 저장
-        Object newPriceId = savePrice(newPriceRequest.getAuctionId(), newPriceRequest.getAuctionPrice(), newPriceRequest.getRatio());
+        ObjectId newPriceId = (ObjectId) savePrice(newPriceRequest.getAuctionId(), newPriceRequest.getAuctionPrice(), newPriceRequest.getRatio());
         saveParticipantAuction(newPriceId, newPriceRequest.getUserId(), newPriceRequest.getRatio());
-        // ==== 낙찰 여부 확인 ====
-
+        // 낙찰인 경우
+        if(newPriceRequest.getRatio() == 1.0) successAuction(newPriceId);
         return new NewPriceResponse(newPriceId);
     }
 
     // 2. 기존 경매 참여
     public ParticipateAuctionResponse participateAuction(ParticipateAuctionRequest participateAuctionRequest) {
         Optional<Price> price = findPriceByPriceId(participateAuctionRequest.getPriceId());
-        if(price.isEmpty()) return new ParticipateAuctionResponse(0);
         // ==== 잔액 검사 ====
 
         // 가격 검사
         double remainderRatio = price.get().getRemainderRatio();
         double newRatio = participateAuctionRequest.getRatio();
-        if(remainderRatio < newRatio) return new ParticipateAuctionResponse(0);
+        if(remainderRatio < newRatio) return new ParticipateAuctionResponse(null);
         // 가격 저장 및 갱신
         Optional<ParticipantAuction> participantAuction = findParticipantAuctionByUserId(participateAuctionRequest.getUserId());
         if(participantAuction.isPresent()) updateParticipantAuction(newRatio, participantAuction.get());
         else saveParticipantAuction(price.get().getPriceId(), participateAuctionRequest.getUserId(), participateAuctionRequest.getRatio());
         updatePrice(remainderRatio-newRatio, price.get());
-        // ==== 낙찰 여부 확인 ====
-
+        // 낙찰인 경우
+        if(participateAuctionRequest.getRatio() == 1.0) successAuction(price.get().getPriceId());
         return new ParticipateAuctionResponse(price.get().getPriceId());
     }
 
@@ -78,7 +83,7 @@ public class AuctionService {
     }
 
     // 3-1. 기존 경매 제안 리스트 받아오기
-    private List<Price> findPricelist(Object auctionId) {
+    private List<Price> findPricelist(ObjectId auctionId) {
         return priceRepository.findByAuctionId(auctionId);
     }
 
@@ -92,15 +97,15 @@ public class AuctionService {
         return pricelist.get(maxIndex).getAuctionPrice();
     }
 
-    private Optional<Auction> findAuctionByAuctionId(Object auctionId) { return auctionRepository.findById(auctionId); }
+    private Optional<Auction> findAuctionByAuctionId(ObjectId auctionId) { return auctionRepository.findById(auctionId); }
 
-    private Optional<Price> findPriceByPriceId(Object priceId) { // 가격 아이디로 가격 조회
+    private Optional<Price> findPriceByPriceId(ObjectId priceId) { // 가격 아이디로 가격 조회
         return priceRepository.findById(priceId);
     }
 
-    private Optional<ParticipantAuction> findParticipantAuctionByUserId(Object userId) { return participantAuctionRepository.findByUserId(userId); }
+    private Optional<ParticipantAuction> findParticipantAuctionByUserId(ObjectId userId) { return participantAuctionRepository.findByUserId(userId); }
 
-    private Object savePrice(Object auctionId, double auctionPrice, double remainderRatio) {
+    private Object savePrice(ObjectId auctionId, double auctionPrice, double remainderRatio) {
         ObjectId newPriceId = new ObjectId();
         Price price = Price.builder()
                 .priceId(newPriceId)
@@ -110,7 +115,7 @@ public class AuctionService {
         return newPriceId;
     }
 
-    private Object saveParticipantAuction(Object priceId, Object userId, double ratio) {
+    private Object saveParticipantAuction(ObjectId priceId, ObjectId userId, double ratio) {
         ParticipantAuction participantAuction = ParticipantAuction.builder()
                 .participantAuctionId(new ObjectId())
                 .priceId(priceId)
@@ -130,9 +135,21 @@ public class AuctionService {
         return participantAuctionRepository.save(participantAuction);
     }
 
-    // 잔액 조회
-    private boolean checkRemainder() {
+    // ==== 잔액 조회 ====
+    private boolean checkRemainder(ObjectId userId) {
         return true;
+    }
+
+    // 낙찰 성공시 map에 추가
+    private void successAuction(ObjectId priceId) {
+        Optional<Price> price = priceRepository.findById(priceId);
+        if(auctionMap.containsKey(price.get().getPriceId())) {
+            Price maxPrice = auctionMap.get(priceId);
+            if(maxPrice.getAuctionPrice() < price.get().getAuctionPrice()) {
+                auctionMap.replace(priceId, price.get());
+            }
+        }
+        else auctionMap.put(priceId, price.get());
     }
 
     private boolean existMaxPrice(List<Price> pricelist) {
@@ -142,16 +159,21 @@ public class AuctionService {
         return false;
     }
 
+    // 낙찰 결제 진행
+    public void makePayment() {
+
+    }
+
+    // (단위 테스트용, 추후 삭제)
     public void deleteAll() { // (단위 테스트용)
         auctionRepository.deleteAll();
         participantAuctionRepository.deleteAll();
         priceRepository.deleteAll();
     }
-
     public void createSampleAuction() { // (단위 테스트용)
         auctionRepository.save(
                 Auction.builder()
-                        .auctionId("auctionId").artId("artId").build());
+                        .auctionId(new ObjectId()).artId(new ObjectId()).build());
     }
 }
 
