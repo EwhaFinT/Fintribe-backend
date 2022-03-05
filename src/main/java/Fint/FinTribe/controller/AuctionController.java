@@ -42,9 +42,11 @@ public class AuctionController {
         return new ResponseEntity<>(pricelistResponse, HttpStatus.OK);
     }
 
+    // 자정이되면 낙찰된 작품 결제 & 새로운 경매 작품 올리기
     @Scheduled(cron="0 0 0 * * *", zone="Asia/Seoul")
     public void startAuction() {
         // 결제
+        auctionService.makePayment();
         // ==== 다음 경매 시작 ====
     }
 }
