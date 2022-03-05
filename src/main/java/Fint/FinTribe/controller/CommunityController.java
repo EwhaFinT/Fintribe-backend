@@ -1,9 +1,9 @@
 package Fint.FinTribe.controller;
 
-import Fint.FinTribe.payload.request.ArticleRequest;
-import Fint.FinTribe.payload.request.CommentRequest;
-import Fint.FinTribe.payload.request.ReviseArticleRequest;
-import Fint.FinTribe.payload.request.ReviseCommentRequest;
+import Fint.FinTribe.domain.community.Community;
+import Fint.FinTribe.payload.request.*;
+import Fint.FinTribe.payload.response.CommunityResponse;
+import Fint.FinTribe.payload.response.VoteCheckResponse;
 import Fint.FinTribe.service.community.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
@@ -20,20 +20,23 @@ import java.util.List;
 public class CommunityController {
     private final CommunityService communityService;
 
+    //커뮤니티
     @GetMapping("/community")
     public ResponseEntity<?> getCommunity(@RequestParam @Valid ObjectId artId, @RequestParam @Valid ObjectId userId){
-        return new ResponseEntity<>(communityService.getCommunityInformation(artId, userId), HttpStatus.OK);
+        CommunityResponse communityResponse = communityService.getCommunityInformation(artId, userId);
+        return new ResponseEntity<>(communityResponse, HttpStatus.OK);
     }
 
+    //게시글
     @PostMapping("/article")
     public ResponseEntity<?> createArticle(@RequestBody @Valid ArticleRequest articleRequest){
-        communityService.createArticle(articleRequest.getUserId(), articleRequest.getTitle(), articleRequest.getContent(), articleRequest.getCommunityId());
+        communityService.createArticle(articleRequest);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/revise-article")
     public ResponseEntity<?> patchArticle(@RequestBody @Valid ReviseArticleRequest articleRequest){
-        communityService.patchArticle(articleRequest.getArticleId(), articleRequest.getTitle(), articleRequest.getContent(), articleRequest.getCommunityId());
+        communityService.patchArticle(articleRequest);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -43,15 +46,16 @@ public class CommunityController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    //댓글
     @PostMapping("/comment")
     public ResponseEntity<?> createComment(@RequestBody @Valid CommentRequest commentRequest){
-        communityService.createComment(commentRequest.getUserId(), commentRequest.getArticleId(), commentRequest.getTagUser(), commentRequest.getContent(), commentRequest.getCommunityId(), commentRequest.getTagCommentId());
+        communityService.createComment(commentRequest);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/revise-comment")
     public ResponseEntity<?> patchComment(@RequestBody @Valid ReviseCommentRequest commentRequest){
-        communityService.patchComment(commentRequest.getArticleId(), commentRequest.getCommentId(), commentRequest.getTagUser(), commentRequest.getContent(), commentRequest.getCommunityId(), commentRequest.getTagCommetId());
+        communityService.patchComment(commentRequest);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -59,5 +63,26 @@ public class CommunityController {
     public ResponseEntity<?> deleteComment(@RequestParam @Valid Long articleId, @RequestParam @Valid List<Integer> commentId, @RequestParam @Valid ObjectId communityId, @RequestParam @Valid List<Integer> tagCommentId){
         communityService.deleteComment(articleId, commentId, communityId, tagCommentId);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    //투표 생성
+    @PostMapping("/vote-proposal")
+    public ResponseEntity<?> createVote(@RequestBody @Valid VoteProposalRequest voteRequest){
+        communityService.createVote(voteRequest);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    //투표 참여
+    @PostMapping("/vote")
+    public ResponseEntity<?> participateVote(@RequestBody @Valid VoteRequest voteRequest){
+        String result = communityService.participateVote(voteRequest);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    //투표창 접속
+    @GetMapping("/check")
+    public ResponseEntity<?> getVote(@RequestParam @Valid ObjectId communityId, @RequestParam @Valid Integer voteId){
+        VoteCheckResponse voteResponse = communityService.getVoteInformation(communityId, voteId);
+        return new ResponseEntity<>(voteResponse, HttpStatus.OK);
     }
 }
