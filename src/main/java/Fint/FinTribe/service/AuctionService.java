@@ -161,7 +161,16 @@ public class AuctionService {
 
     // 낙찰 결제 진행
     public void makePayment() {
-
+        Iterator<ObjectId> keys = auctionMap.keySet().iterator();
+        while(keys.hasNext()) {
+            ObjectId priceId = keys.next();
+            double price = auctionMap.get(priceId).getAuctionPrice();
+            List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(priceId);
+            for(int i = 0; i < participantAuctionList.size(); i++) {
+                double individualPrice = price * participantAuctionList.get(i).getRatio();
+                // ==== 결제 진행 ====
+            }
+        }
     }
 
     // (단위 테스트용, 추후 삭제)
