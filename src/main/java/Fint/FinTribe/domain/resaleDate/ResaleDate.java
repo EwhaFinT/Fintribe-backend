@@ -1,4 +1,4 @@
-package Fint.FinTribe.domain.auctionDate;
+package Fint.FinTribe.domain.resaleDate;
 
 import lombok.*;
 import org.bson.types.ObjectId;
@@ -10,10 +10,10 @@ import java.util.List;
 
 @Getter
 @Builder
-@Document(collection = "auction_date")
-public class AuctionDate {
+@Document(collection = "resale_date")
+public class ResaleDate {
     @Id
-    private ObjectId auctionDateId;
-    private LocalDateTime auctionDate;
+    private ObjectId resaleDateId;
+    private LocalDateTime resaleDate;
     private List<ObjectId> artId;
 }
