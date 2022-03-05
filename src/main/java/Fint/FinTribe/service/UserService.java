@@ -51,6 +51,8 @@ public class UserService {
         return new MypageResponse(user.get().getWallet(), user.get().getArtId());
     }
 
+    private Optional<User> findByUserId(ObjectId userId) { return userRespository.findById(userId); }
+
     private Optional<User> findByIdentity(String identity) {
         return userRespository.findByIdentity(identity);
     }

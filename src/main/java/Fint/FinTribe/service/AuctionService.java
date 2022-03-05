@@ -159,8 +159,9 @@ public class AuctionService {
         return false;
     }
 
+    // 낙찰 결제 진행
     public void makePayment() {
-        
+
     }
 
     // (단위 테스트용, 추후 삭제)
