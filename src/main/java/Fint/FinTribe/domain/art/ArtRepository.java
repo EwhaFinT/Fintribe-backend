@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository
 public interface ArtRepository extends MongoRepository<Art, ObjectId> {
     @Query("{'auctionId': ?0}")
-    Optional<Art> findByAuctionId(Object auctionId);
+    Optional<Art> findByAuctionId(ObjectId auctionId);
 }
