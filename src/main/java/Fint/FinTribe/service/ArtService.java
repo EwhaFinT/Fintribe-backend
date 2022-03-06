@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ArtService {
     private final ArtRepository artRepository;
 
-    private UploadResponse upload(UploadRequest uploadRequest) {
+    public UploadResponse upload(UploadRequest uploadRequest) {
         // ==== nft 주소 받기 ====
         // ==== 이미지 서버 등록 ====
         Art art = Art.builder()
