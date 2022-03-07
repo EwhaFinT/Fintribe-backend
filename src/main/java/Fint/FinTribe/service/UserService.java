@@ -53,14 +53,14 @@ public class UserService {
     // 5. 아이디 찾기
     public FindIdResponse findId(FindIdRequest findIdRequest) {
         Optional<User> user = userRespository.findByNameAndPhone(findIdRequest.getName(), findIdRequest.getPhone());
-        if(user.isEmpty()) return new FindIdResponse(null);
+        if(user.isEmpty()) return new FindIdResponse(null); // 해당 정보와 일치하는 사용자 존재하지 않음
         return new FindIdResponse(user.get().getIdentity());
     }
 
     // 6. 비밀번호 찾기
     public FindPwResponse findPw(FindPwRequest findPwRequest) {
         Optional<User> user = userRespository.findByIdentityAndEmail(findPwRequest.getIdentity(), findPwRequest.getEmail());
-        if(user.isEmpty()) return new FindPwResponse(false);
+        if(user.isEmpty()) return new FindPwResponse(false); // 해당 정보와 일치하는 사용자 존재하지 않음
         SimpleMailMessage message = makeEmailForm(findPwRequest.getEmail(), "[FinTribe: 비밀번호 찾기]", null);
         javaMailSender.send(message);
         return new FindPwResponse(true);
