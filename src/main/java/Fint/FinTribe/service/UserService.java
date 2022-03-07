@@ -3,14 +3,12 @@ package Fint.FinTribe.service;
 import Fint.FinTribe.config.SecurityConfig;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.domain.user.UserRespository;
-import Fint.FinTribe.payload.request.LoginRequest;
-import Fint.FinTribe.payload.request.MypageRequest;
-import Fint.FinTribe.payload.request.SignupRequest;
-import Fint.FinTribe.payload.response.LoginResponse;
-import Fint.FinTribe.payload.response.MypageResponse;
-import Fint.FinTribe.payload.response.SignupResponse;
+import Fint.FinTribe.payload.request.*;
+import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +20,7 @@ import java.util.Optional;
 public class UserService {
     private final UserRespository userRespository;
     private final SecurityConfig securityConfig;
+    private final JavaMailSender javaMailSender;
 
     // 1. 회원 가입
     public SignupResponse registerUser(SignupRequest signupRequest) {
@@ -51,6 +50,22 @@ public class UserService {
         return new MypageResponse(user.get().getWallet(), user.get().getArtId());
     }
 
+    // 5. 아이디 찾기
+    public FindIdResponse findId(FindIdRequest findIdRequest) {
+        Optional<User> user = userRespository.findByNameAndPhone(findIdRequest.getName(), findIdRequest.getPhone());
+        if(user.isEmpty()) return new FindIdResponse(null);
+        return new FindIdResponse(user.get().getIdentity());
+    }
+
+    // 6. 비밀번호 찾기
+    public FindPwResponse findPw(FindPwRequest findPwRequest) {
+        Optional<User> user = userRespository.findByIdentityAndEmail(findPwRequest.getIdentity(), findPwRequest.getEmail());
+        if(user.isEmpty()) return new FindPwResponse(false);
+        SimpleMailMessage message = makeEmailForm(findPwRequest.getEmail(), "[FinTribe: 비밀번호 찾기]", null);
+        javaMailSender.send(message);
+        return new FindPwResponse(true);
+    }
+
     private Optional<User> findByUserId(ObjectId userId) { return userRespository.findById(userId); }
 
     private Optional<User> findByIdentity(String identity) {
@@ -67,6 +82,15 @@ public class UserService {
         return userRespository.save(user); // 회원 저장
     }
 
+    private SimpleMailMessage makeEmailForm(String to, String title, String text) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setFrom("ewhafint@gmail.com");
+        message.setSubject(title);
+        message.setText(text);
+        return new SimpleMailMessage();
+    }
+    
     public void deleteAll() { // (단위 테스트용)
         userRespository.deleteAll();
     }
