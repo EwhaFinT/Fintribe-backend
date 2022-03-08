@@ -15,6 +15,6 @@ public interface UserRespository extends MongoRepository<User, ObjectId> {
     @Query("{'name': ?0, 'phone': ?1}")
     Optional<User> findByNameAndPhone(String name, String phone);
 
-    @Query("{'identity': ?, 'email': ?1}")
+    @Query("{'identity': ?0, 'email': ?1}")
     Optional<User> findByIdentityAndEmail(String identity, String email);
 }
