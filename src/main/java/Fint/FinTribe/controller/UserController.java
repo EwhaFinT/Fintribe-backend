@@ -1,11 +1,7 @@
 package Fint.FinTribe.controller;
 
-import Fint.FinTribe.payload.request.LoginRequest;
-import Fint.FinTribe.payload.request.MypageRequest;
-import Fint.FinTribe.payload.request.SignupRequest;
-import Fint.FinTribe.payload.response.LoginResponse;
-import Fint.FinTribe.payload.response.MypageResponse;
-import Fint.FinTribe.payload.response.SignupResponse;
+import Fint.FinTribe.payload.request.*;
+import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,5 +42,19 @@ public class UserController {
     public ResponseEntity<?> myPage(@Valid @RequestBody MypageRequest mypageRequest) {
         MypageResponse mypageResponse = userService.myPage(mypageRequest);
         return new ResponseEntity<>(mypageResponse, HttpStatus.OK);
+    }
+
+    // 5. 아이디 찾기
+    @PostMapping("/findId")
+    public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest findIdRequest) {
+        FindIdResponse findIdResponse = userService.findId(findIdRequest);
+        return new ResponseEntity<>(findIdResponse, HttpStatus.OK);
+    }
+
+    // 6. 비밀번호 찾기
+    @PostMapping("/findPw")
+    public ResponseEntity<?> findPw(@Valid @RequestBody FindPwRequest findPwRequest) {
+        FindPwResponse findPwResponse = userService.findPw(findPwRequest);
+        return new ResponseEntity<>(findPwResponse, HttpStatus.OK);
     }
 }
