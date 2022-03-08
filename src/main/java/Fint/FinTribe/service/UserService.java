@@ -3,12 +3,8 @@ package Fint.FinTribe.service;
 import Fint.FinTribe.config.SecurityConfig;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.domain.user.UserRespository;
-import Fint.FinTribe.payload.request.LoginRequest;
-import Fint.FinTribe.payload.request.MypageRequest;
-import Fint.FinTribe.payload.request.SignupRequest;
-import Fint.FinTribe.payload.response.LoginResponse;
-import Fint.FinTribe.payload.response.MypageResponse;
-import Fint.FinTribe.payload.response.SignupResponse;
+import Fint.FinTribe.payload.request.*;
+import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
@@ -71,7 +67,6 @@ public class UserService {
         return new FindPwResponse(true);
     }
 
->>>>>>> 5b5e884 (Feat: User Service 아이디/비밀번호 찾기 함수 추가)
     private Optional<User> findByUserId(ObjectId userId) { return userRespository.findById(userId); }
 
     private Optional<User> findByIdentity(String identity) {
@@ -88,8 +83,6 @@ public class UserService {
         return userRespository.save(user); // 회원 저장
     }
 
-<<<<<<< HEAD
-=======
     // 메일 형식 만들기
     private SimpleMailMessage makeEmailForm(String to, String title, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
