@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Document(collection = "participant_vote")
 public class ParticipantVote {
+    private ObjectId voteId;
     private ObjectId userId;
     private Boolean choice;
     private LocalDateTime participatedAt;
