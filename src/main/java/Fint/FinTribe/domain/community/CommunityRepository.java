@@ -1,15 +1,14 @@
-package Fint.FinTribe.repository.community;
+package Fint.FinTribe.domain.community;
 
-import Fint.FinTribe.domain.community.Community;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
 public interface CommunityRepository extends MongoRepository<Community, ObjectId> {
-    @Override
-    Optional<Community> findById(ObjectId objectId);
+    @Query("{$and:[{'artId': ?0}, {'isDeleted': ?0}]")
     Optional<Community> findByArtIdAndIsDeleted(ObjectId objectId, Boolean isDeleted);
 }
