@@ -11,13 +11,11 @@ public class CommentRequest {
     @NotNull
     ObjectId userId;
     @NotNull
-    Long articleId;
+    ObjectId articleId;
     @NotNull
     ObjectId tagUser;
     @NotNull
     String content;
     @NotNull
-    ObjectId communityId;
-    @NotNull
-    List<Integer> tagCommentId;
+    Integer tagCommentId;
 }
