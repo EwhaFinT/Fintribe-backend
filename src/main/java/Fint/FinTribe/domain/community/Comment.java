@@ -1,18 +1,22 @@
 package Fint.FinTribe.domain.community;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import org.bson.types.ObjectId;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
-@AllArgsConstructor
+@Setter
+@Builder
 @Document(collection = "comment")
 public class Comment {
-    private List<Integer> commentId;
+    @Id
+    private Integer commentId;
+    private ObjectId ArticleId;
     private String content;
     private ObjectId userId;
     private String identity;
