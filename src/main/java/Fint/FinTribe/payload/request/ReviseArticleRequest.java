@@ -8,11 +8,9 @@ import javax.validation.constraints.NotNull;
 @Getter
 public class ReviseArticleRequest {
     @NotNull
-    Long articleId;
+    ObjectId articleId;
     @NotNull
     String title;
     @NotNull
     String content;
-    @NotNull
-    ObjectId communityId;
 }
