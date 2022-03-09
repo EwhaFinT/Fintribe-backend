@@ -10,9 +10,7 @@ public class VoteRequest {
     @NotNull
     ObjectId userId;
     @NotNull
-    ObjectId communityId;
-    @NotNull
-    Integer voteId;
+    ObjectId voteId;
     @NotNull
     Boolean choice;
 }
