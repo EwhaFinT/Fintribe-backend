@@ -15,6 +15,4 @@ public class Community {
     private ObjectId communityId;
     private ObjectId artId;
     private Boolean isDeleted;
-    private List<Vote> voteList;
-    private List<Article> articleList;
 }
