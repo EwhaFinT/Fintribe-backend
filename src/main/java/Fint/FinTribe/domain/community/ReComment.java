@@ -2,16 +2,20 @@ package Fint.FinTribe.domain.community;
 
 import lombok.*;
 import org.bson.types.ObjectId;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
-@AllArgsConstructor
+@Setter
+@Builder
 @Document(collection = "reComment")
 public class ReComment {
-    private List<Integer> reCommentId;
+    @Id
+    private Integer reCommentId;
+    private Integer tagCommentId;
+    private ObjectId articleId;
     private String content;
     private ObjectId userId;
     private String identity;
