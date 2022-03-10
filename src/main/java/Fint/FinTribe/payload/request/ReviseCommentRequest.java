@@ -4,14 +4,13 @@ import lombok.Getter;
 import org.bson.types.ObjectId;
 
 import javax.validation.constraints.NotNull;
-import java.util.List;
 
 @Getter
 public class ReviseCommentRequest {
     @NotNull
-    Long articleId;
+    ObjectId articleId;
     @NotNull
-    List<Integer> commentId;
+    Integer commentId;
     @NotNull
     ObjectId tagUser;
     @NotNull
@@ -19,5 +18,5 @@ public class ReviseCommentRequest {
     @NotNull
     ObjectId communityId;
     @NotNull
-    List<Integer> tagCommetId;
+    Integer tagCommentId;
 }
