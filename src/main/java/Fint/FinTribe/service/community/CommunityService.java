@@ -72,7 +72,7 @@ public class CommunityService {
         return ReComment.builder()
                 .reCommentId(commentId)
                 .tagCommentId(commentRequest.getTagCommentId())
-                .ArticleId(commentRequest.getArticleId())
+                .articleId(commentRequest.getArticleId())
                 .content(commentRequest.getContent())
                 .userId(commentRequest.getUserId())
                 .identity(user.getIdentity())
