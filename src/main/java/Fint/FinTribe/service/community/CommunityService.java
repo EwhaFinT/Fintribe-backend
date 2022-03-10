@@ -3,15 +3,9 @@ package Fint.FinTribe.service.community;
 import Fint.FinTribe.domain.community.*;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
-import Fint.FinTribe.payload.response.CommunityResponse;
-import Fint.FinTribe.payload.response.VoteCheckResponse;
-import Fint.FinTribe.repository.community.CommunityRepository;
+import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,271 +16,220 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommunityService {
     private final CommunityRepository communityRepository;
-    private final MongoTemplate mongoTemplate;
+    private final ArticleRepository articleRepository;
+    private final CommentRepository commentRepository;
+    private final ReCommentRepository reCommentRepository;
+    private final VoteRepository voteRepository;
+    private final ParticipantVoteRepository participantVoteRepository;
+    private final UserService userService;
 
-    public Article textToArticle(Long articleId, ObjectId userId, String identity, String title, String content){
-        LocalDateTime now = LocalDateTime.now();
-        List<Comment> comments = new ArrayList<>();
-        List<ReComment> reComments = new ArrayList<>();
-        return new Article(articleId, userId, identity, title, content, now, now, false, comments, reComments);
-    }
-
-    public ReComment textToReComment(List<Integer> commentId, ObjectId userId, ObjectId tagUser, String content){
-        User user = new user();     //user 찾는 함수 호출
-        User tUser = new user();        //tagUser로 user 찾는 함수 호출
-        LocalDateTime now = LocalDateTime.now();
-        return new ReComment(commentId, content, userId, user.getIdentity(), now, now, tagUser, tUser.getIdentity(), false);
-    }
-
-    public Comment textToComment(List<Integer> commentId, ObjectId userId, String content){
-        User user = new user();     //user 찾는 함수 호출
-        LocalDateTime now = LocalDateTime.now();
-        return new Comment(commentId, content, userId, user.getIdentity(), now, now, false);
-    }
-
-    public Vote textToVote(Integer voteId, ObjectId userId, String title, Double price, LocalDateTime endTime){
-        User user = new User();     //user 찾는 함수
-        LocalDateTime now = LocalDateTime.now();
-        List<ParticipantVote> participantVoteList = new ArrayList<>();
-        return new Vote(voteId, userId, user.getIdentity(), title, price, now, endTime, false, 0.0, 0.0, participantVoteList);
-    }
-
-    public ParticipantVote textToParticipant(ObjectId userId, Boolean choice, Double ratio){
-        LocalDateTime now = LocalDateTime.now();
-        return new ParticipantVote(userId, choice, now, ratio);
-    }
-
-    //artId로 community 정보 불러오기
-    public Community getCommunityByArtID(ObjectId artId){
+    //DB community 조회
+    private Community findCommunityByArtId(ObjectId artId){
         return communityRepository.findByArtIdAndIsDeleted(artId, false).get();
     }
 
-    public Community getCommunityById(ObjectId communityId){
-        return communityRepository.findById(communityId).get();
+    //DB Article 조회
+    private List<Article> findArticlesByCommunityId(ObjectId communityId){
+        return articleRepository.findByCommunityIdAndIsDeleted(communityId, false);
     }
 
-    public CommunityResponse getCommunityInformation(ObjectId artId, ObjectId userId){
-        Community community = getCommunityByArtID(artId);
-        User user = new User();//userId로 identity 찾는 함수 호출
-        return new CommunityResponse(user.getIdentity(), community.getCommunityId(), community.getIsDeleted(), community.getArticleList());
+    //Article entity 생성
+    private Article articleRequestToEntity(ArticleRequest articleRequest){
+        LocalDateTime now = LocalDateTime.now();
+        return Article.builder()
+                .communityId(articleRequest.getCommunityId())
+                .userId(articleRequest.getUserId())
+                .identity(articleRequest.getIdentity())
+                .title(articleRequest.getTitle())
+                .content(articleRequest.getContent())
+                .createdAt(now)
+                .updatedAt(now)
+                .isDeleted(false)
+                .build();
     }
 
-    //articleList에 새로운 article 추가
-    public void createArticle(ArticleRequest articleRequest){
-        Community community = getCommunityById(articleRequest.getCommunityId());
-        User user = new User();     //userId로 identity 찾는 함수 호출
-
-        Query query = new Query().addCriteria((Criteria.where("_id").is(articleRequest.getCommunityId())));
-        Update update = new Update();
-        Long index;
-
-        List<Article> articleList = community.getArticleList();
-
-        if(articleList == null || articleList.isEmpty()){
-            index = 0L;
-        }
-        else{
-            index = Long.valueOf(articleList.size());
-        }
-
-        List<Article> updatedArticles = new ArrayList<>();
-
-        Article article = textToArticle(index, articleRequest.getUserId(), user.getIdentity(), articleRequest.getTitle(), articleRequest.getContent());
-        updatedArticles.add(article);
-
-        update.push("articleList").each(updatedArticles);
-        mongoTemplate.updateFirst(query, update, "community");
+    //Comment entity 생성
+    private Comment commentRequestToEntity(CommentRequest commentRequest, Integer commentId){
+        LocalDateTime now = LocalDateTime.now();
+        User user = userService.findByUserId(commentRequest.getUserId()).get();
+        return Comment.builder()
+                .commentId(commentId)
+                .ArticleId(commentRequest.getArticleId())
+                .content(commentRequest.getContent())
+                .userId(commentRequest.getUserId())
+                .identity(user.getIdentity())
+                .createdAt(now)
+                .updatedAt(now)
+                .isDeleted(false)
+                .build();
     }
 
-    //article 수정
-    public void patchArticle(ReviseArticleRequest articleRequest){
+    //ReComment entity 생성
+    private ReComment reCommentRequestToEntity(CommentRequest commentRequest, Integer commentId){
+        LocalDateTime now = LocalDateTime.now();
+        User user = userService.findByUserId(commentRequest.getUserId()).get();
+        User tagUser = userService.findByUserId(commentRequest.getTagUser()).get();
+        return ReComment.builder()
+                .reCommentId(commentId)
+                .tagCommentId(commentRequest.getTagCommentId())
+                .ArticleId(commentRequest.getArticleId())
+                .content(commentRequest.getContent())
+                .userId(commentRequest.getUserId())
+                .identity(user.getIdentity())
+                .createdAt(now)
+                .updatedAt(now)
+                .tagUser(commentRequest.getTagUser())
+                .tagUserIdentity(tagUser.getIdentity())
+                .isDeleted(false)
+                .build();
+    }
+
+    //Vote entity 생성
+    private Vote voteProposalRequestToEntity(VoteProposalRequest voteRequest){
+        LocalDateTime now = LocalDateTime.now();
+        User user = userService.findByUserId(voteRequest.getUserId()).get();
+        return Vote.builder()
+                .communityId(voteRequest.getCommunityId())
+                .userId(voteRequest.getUserId())
+                .identity(user.getIdentity())
+                .title(voteRequest.getTitle())
+                .resalePrice(voteRequest.getResalePrice())
+                .startTime(now)
+                .endTime(voteRequest.getEndTime())
+                .isDeleted(false)
+                .agreement(0.0)
+                .disagreement(0.0)
+                .build();
+    }
+
+    //ParticipantVote 객체 생성
+    private ParticipantVote voteRequestToEntity(VoteRequest voteRequest, Double ratio){
+        LocalDateTime now = LocalDateTime.now();
+        return new ParticipantVote(voteRequest.getVoteId(), voteRequest.getUserId(), voteRequest.getChoice(), now, ratio);
+    }
+
+    //Community 조회
+    public CommunityResponse getCommunity(ObjectId artId, ObjectId userId){
+        Community community = findCommunityByArtId(artId);
+        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
+        return new CommunityResponse(user.getIdentity(), community.getCommunityId(), community.getIsDeleted(), findArticlesByCommunityId(community.getCommunityId()));
+    }
+
+    //Article 생성
+    public ArticleResponse createArticle(ArticleRequest articleRequest){
+        articleRepository.save(articleRequestToEntity(articleRequest));
+        return new ArticleResponse("success");
+    }
+
+    //Article 수정
+    public ArticleResponse updateArticle(ReviseArticleRequest articleRequest){
         LocalDateTime now = LocalDateTime.now();
 
-        Query query = new Query().addCriteria(
-                Criteria.where("_id").is(articleRequest.getCommunityId())
-        );
-        query.addCriteria(
-                Criteria.where("articleList.articleId").is(articleRequest.getArticleId())
-        );
-
-        Update update = new Update().set("articleList.$.title", articleRequest.getTitle());
-        update.set("articleList.$.content", articleRequest.getContent());
-        update.set("articleList.$.updatedAt", now);
-        mongoTemplate.updateFirst(query, update, "community");
+        Article article = articleRepository.findById(articleRequest.getArticleId()).get();
+        article.setTitle(articleRequest.getTitle());
+        article.setContent(articleRequest.getContent());
+        article.setUpdatedAt(now);
+        articleRepository.save(article);
+        return new ArticleResponse("success");
     }
 
-    //article 삭제
-    public void deleteArticle(Long articleId, ObjectId communityId){
-        Query query = new Query().addCriteria(
-                Criteria.where("_id").is(communityId)
-        );
-        query.addCriteria(
-                Criteria.where("articleList.articleId").is(articleId)
-        );
-        Update update = new Update().set("articleList.$.isDeleted", true);
-        mongoTemplate.updateFirst(query, update, "community");
+    //Article 삭제
+    public ArticleResponse deleteArticle(ObjectId articleId){
+        Article article = articleRepository.findById(articleId).get();
+        article.setIsDeleted(true);
+        articleRepository.save(article);
+        return new ArticleResponse("success");
     }
 
-    //comments 혹은 reComments에 새로운 comment 추가
-    public void createComment(CommentRequest commentRequest){
-        Query query = new Query().addCriteria((Criteria.where("_id").is(commentRequest.getCommunityId())));
-        query.addCriteria(
-                Criteria.where("articleList.articleId").is(commentRequest.getArticleId())
-        );
-
-        Update update = new Update();
-        List<Integer> commentId = new ArrayList<>();
-
-        if(commentRequest.getTagCommentId().get(0) == -1){
-            List<Comment> commentList = getCommunityById(commentRequest.getCommunityId()).getArticleList().get(commentRequest.getArticleId().intValue()).getComments();
-
-            if(commentList == null || commentList.isEmpty()){
-                commentId.add(0);
-                commentId.add(0);
-            }
-            else{
-                commentId.add(commentList.size());
-                commentId.add(0);
-            }
-
-            List<Comment> updatedComments = new ArrayList<>();
-
-            Comment comment = textToComment(commentId, commentRequest.getUserId(), commentRequest.getContent());
-            updatedComments.add(comment);
-
-            update.push("articleList.$.comments").each(updatedComments);
-            mongoTemplate.updateFirst(query, update, "community");
+    //Comment 생성
+    public CommentResponse createComment(CommentRequest commentRequest){
+        Integer lastComment;
+        if(commentRequest.getTagCommentId() == -1){
+            List<Comment> commentList = commentRepository.findByArticleId(commentRequest.getArticleId());
+            if(commentList.isEmpty())
+                lastComment = -1;
+            else
+                lastComment = commentList.get(commentList.size() - 1).getCommentId();
+            commentRequestToEntity(commentRequest, lastComment + 1);
         }
         else{
-            List<ReComment> commentList = getCommunityById(commentRequest.getCommunityId()).getArticleList().get(commentRequest.getArticleId().intValue()).getReComments();
-
-            if(commentList == null || commentList.isEmpty()){
-                commentId.add(commentRequest.getTagCommentId().get(0));
-                commentId.add(0);
+            if(commentRepository.findById(commentRequest.getTagCommentId()).get().getIsDeleted()){
+                return new CommentResponse("deleted comment");
             }
-            else{
-                commentId.add(commentRequest.getTagCommentId().get(0));
-                commentId.add(commentList.size());
-            }
-
-            List<ReComment> updatedComments = new ArrayList<>();
-
-            ReComment comment = textToReComment(commentId, commentRequest.getUserId(), commentRequest.getTagUser(), commentRequest.getContent());
-            updatedComments.add(comment);
-
-            update.push("articleList.$.reComments").each(updatedComments);
-            mongoTemplate.updateFirst(query, update, "community");
+            List<ReComment> commentList = reCommentRepository.findByTagCommentId(commentRequest.getTagCommentId());
+            if(commentList.isEmpty())
+                lastComment = -1;
+            else
+                lastComment = commentList.get(commentList.size() - 1).getReCommentId();
+            reCommentRequestToEntity(commentRequest, lastComment + 1);
         }
+        return new CommentResponse("success");
     }
 
-    //comment 수정
-    public void patchComment(ReviseCommentRequest commentRequest){
-        Query query = new Query().addCriteria((Criteria.where("_id").is(commentRequest.getCommunityId())));
-        query.addCriteria(
-                Criteria.where("articleList.articleId").is(commentRequest.getArticleId())
-        );
-        Update update = new Update();
-
+    //Comment 수정
+    public CommentResponse updateComment(ReviseCommentRequest commentRequest){
         LocalDateTime now = LocalDateTime.now();
-
-        if (commentRequest.getTagCommetId().get(0) == -1){
-            query.addCriteria(Criteria.where("comments.commentId").is(commentRequest.getCommentId()));
-            update.set("articleList.$.comments.$.content", commentRequest.getContent());
-            update.set("articleList.$.comments.$.updatedAt", now);
-            mongoTemplate.updateFirst(query, update, "community");
+        if(commentRequest.getTagCommentId() == -1){
+            Comment comment = commentRepository.findByIdAndArticleId(commentRequest.getCommentId(), commentRequest.getArticleId()).get();
+            comment.setContent(commentRequest.getContent());
+            comment.setUpdatedAt(now);
+            commentRepository.save(comment);
         }
         else{
-            query.addCriteria(Criteria.where("reComments.reCommentId").is(commentRequest.getCommentId()));
-            update.set("articleList.$.reComments.$.content", commentRequest.getContent());
-            update.set("articleList.$.reComments.$.updatedAt", now);
-            mongoTemplate.updateFirst(query, update, "community");
+            ReComment comment = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentRequest.getCommentId(), commentRequest.getTagCommentId(), commentRequest.getArticleId()).get();
+            comment.setContent(commentRequest.getContent());
+            comment.setUpdatedAt(now);
+            reCommentRepository.save(comment);
         }
+        return new CommentResponse("success");
     }
 
-    //comment 삭제
-    public void deleteComment(Long articleId, List<Integer> commentId, ObjectId communityId, List<Integer> tagCommentId){
-        Query query = new Query().addCriteria((Criteria.where("_id").is(communityId)));
-        query.addCriteria(
-                Criteria.where("articleList.articleId").is(articleId)
-        );
-        Update update = new Update();
-
-        if (tagCommentId.get(0) == -1){
-            query.addCriteria(Criteria.where("comments.commentId").is(commentId));
-            update.set("articleList.$.comments.$.isDeleted", true);
-            mongoTemplate.updateFirst(query, update, "community");
+    //Comment 삭제
+    public CommentResponse deleteComment(ObjectId articleId, Integer commentId, Integer tagCommentId){
+        if(tagCommentId == -1){
+            Comment comment = commentRepository.findByIdAndArticleId(commentId, articleId).get();
+            comment.setIsDeleted(true);
+            commentRepository.save(comment);
         }
         else{
-            query.addCriteria(Criteria.where("reComments.reCommentId").is(commentId));
-            update.set("articleList.$.reComments.$.isDeleted", true);
-            mongoTemplate.updateFirst(query, update, "community");
+            ReComment comment = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentId, tagCommentId, articleId).get();
+            comment.setIsDeleted(true);
+            reCommentRepository.save(comment);
         }
+        return new CommentResponse("success");
     }
 
-    //vote 추가
-    public void createVote(VoteProposalRequest voteRequest){
-        Community community = getCommunityById(voteRequest.getCommunityId());
-
-        Query query = new Query().addCriteria((Criteria.where("_id").is(voteRequest.getCommunityId())));
-        Update update = new Update();
-        Integer index;
-
-        List<Vote> voteList = community.getVoteList();
-
-        if(voteList == null || voteList.isEmpty()){
-            index = 0;
-        }
-        else{
-            index = voteList.size();
-        }
-
-        List<Vote> updatedVotes = new ArrayList<>();
-
-        Vote vote = textToVote(index, voteRequest.getUserId(), voteRequest.getTitle(), voteRequest.getResalePrice(), voteRequest.getEndTime());
-        updatedVotes.add(vote);
-
-        update.push("voteList").each(updatedVotes);
-        mongoTemplate.updateFirst(query, update, "community");
+    //Vote 생성
+    public VoteResponse createVote(VoteProposalRequest voteRequest){
+        voteProposalRequestToEntity(voteRequest);
+        return new VoteResponse("success");
     }
 
-    //vote 참여
-    public String participateVote(VoteRequest voteRequest){
-        Query query = new Query().addCriteria((Criteria.where("_id").is(voteRequest.getCommunityId())));
-        query.addCriteria(Criteria.where("voteList.voteId").is(voteRequest.getVoteId()));
+    //Vote 참여
+    public VoteResponse participateVote(VoteRequest voteRequest){
+        Double ratio = 0.0; //-- artId와 userId로 지분 조회하는 함수 호출
 
-        Update update = new Update();
-
-        ObjectId artId = getCommunityById(voteRequest.getCommunityId()).getArtId();
-        Double ratio = 0.0;// artId와 userId로 지분 조회하는 함수
-
-        ParticipantVote participantVote = textToParticipant(voteRequest.getUserId(), voteRequest.getChoice(), ratio);
-        List<ParticipantVote> participantList = getCommunityById(voteRequest.getCommunityId()).getVoteList().get(voteRequest.getVoteId()).getParticipants();
+        ParticipantVote participantVote = voteRequestToEntity(voteRequest, ratio);
+        List<ParticipantVote> participantList = participantVoteRepository.findByVoteId(voteRequest.getVoteId());
         if(!participantList.contains(participantVote)){
-            Vote vote = getCommunityById(voteRequest.getCommunityId()).getVoteList().get(voteRequest.getVoteId());
-
+            Vote vote = voteRepository.findById(voteRequest.getVoteId()).get();
             if(voteRequest.getChoice()){
-                Update voteUpdate = new Update().set("voteList.$.agreement", vote.getAgreement() + ratio);
-                mongoTemplate.updateFirst(query, voteUpdate, "community");
+                vote.setAgreement(vote.getAgreement() + ratio);
             }
-            else {
-                Update voteUpdate = new Update().set("voteList.$.disagreement", vote.getDisagreement() + ratio);
-                mongoTemplate.updateFirst(query, voteUpdate, "community");
+            else{
+                vote.setDisagreement(vote.getDisagreement() + ratio);
             }
-
-            List<ParticipantVote> updatedParticipant = new ArrayList<>();
-            updatedParticipant.add(participantVote);
-
-            update.push("articleList.$.comments").each(updatedParticipant);
-            mongoTemplate.updateFirst(query, update, "community");
-            return "Success";
+            voteRepository.save(vote);
+            participantVoteRepository.save(participantVote);
+            return new VoteResponse("success");
         }
-        return "Duplicate Vote";
+        return new VoteResponse("duplicate vote");
     }
 
-    //투표창 조회
-    public VoteCheckResponse getVoteInformation(ObjectId communityId, Integer voteId){
-        Vote vote = getCommunityById(communityId).getVoteList().get(voteId);
-        return new VoteCheckResponse(vote.getVoteId(), vote.getUserId(), vote.getIdentity(),
+    //Vote 조회
+    public VoteCheckResponse getVoteInformation(ObjectId voteId){
+        Vote vote = voteRepository.findById(voteId).get();
+        return new VoteCheckResponse(voteId, vote.getUserId(), vote.getIdentity(),
                 vote.getTitle(), vote.getResalePrice(), vote.getStartTime(), vote.getEndTime(),
                 vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement());
     }
