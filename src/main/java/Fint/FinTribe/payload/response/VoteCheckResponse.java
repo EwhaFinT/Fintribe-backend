@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 public class VoteCheckResponse {
-    private Integer voteId;
+    private ObjectId voteId;
     private ObjectId userId;
     private String identity;
     private String title;
