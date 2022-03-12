@@ -1,20 +1,15 @@
-package Fint.FinTribe.domain.community;
+package Fint.FinTribe.payload.response;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
-@Builder
-@Document(collection = "vote")
-public class Vote {
-    @Id
+@AllArgsConstructor
+public class VoteCheckResponse {
     private ObjectId voteId;
-    private ObjectId communityId;
     private ObjectId userId;
     private String identity;
     private String title;
