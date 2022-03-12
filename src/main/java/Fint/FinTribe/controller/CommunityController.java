@@ -1,6 +1,5 @@
 package Fint.FinTribe.controller;
 
-import Fint.FinTribe.domain.community.Community;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.ArticleResponse;
 import Fint.FinTribe.payload.response.CommunityResponse;
@@ -13,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.List;
 
 @RequestMapping("/v1")
 @RestController
