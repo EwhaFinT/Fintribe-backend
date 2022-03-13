@@ -20,5 +20,6 @@ public class Art {
     private String nftAdd;
     private String paint;
     private Boolean sold = false;
+    private String wallet;
     private List<ObjectId> userId;
 }
