@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.List;
 
 @Getter
+@Setter
 @Builder
 @Document(collection = "art")
 public class Art {
@@ -20,6 +21,5 @@ public class Art {
     private String nftAdd;
     private String paint;
     private Boolean sold = false;
-    private String wallet;
     private List<ObjectId> userId;
 }
