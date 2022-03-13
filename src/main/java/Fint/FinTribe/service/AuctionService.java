@@ -17,6 +17,7 @@ import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -171,6 +172,30 @@ public class AuctionService {
                 // ==== 결제 진행 ====
             }
         }
+    }
+
+    public void saveAuctionDate(ObjectId artId, LocalDateTime date) {
+        Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(date);
+        // 해당 date가 auctionDate 테이블에 있는 경우 update
+        if(auctionDate.isPresent()) updateAuctionDate(artId, auctionDate.get());
+        // 해당 date가 auctionDate 테이블에 없는 경우 save
+        else saveAuctionDate(artId, date);
+    }
+
+    private Object saveAuctionDate(LocalDateTime date, ObjectId artId) {
+        List<ObjectId> artIdList = new ArrayList<>();
+        artIdList.add(artId);
+        AuctionDate newAuctionDate = AuctionDate.builder()
+                .auctionDateId(new ObjectId())
+                .auctionDate(date).artId(artIdList).build();
+        return auctionDateRepository.save(newAuctionDate);
+    }
+
+    private Object updateAuctionDate(ObjectId artId, AuctionDate auctionDate) {
+        List<ObjectId> artIdList = auctionDate.getArtId();
+        artIdList.add(artId);
+        auctionDate.setArtId(artIdList);
+        return auctionDateRepository.save(auctionDate);
     }
 
     // (단위 테스트용, 추후 삭제)
