@@ -1,7 +1,6 @@
 package Fint.FinTribe.controller;
 
 import Fint.FinTribe.payload.request.*;
-import Fint.FinTribe.payload.response.ArticleResponse;
 import Fint.FinTribe.payload.response.CommunityResponse;
 import Fint.FinTribe.payload.response.VoteCheckResponse;
 import Fint.FinTribe.service.community.CommunityService;
@@ -29,20 +28,20 @@ public class CommunityController {
     //게시글
     @PostMapping("/article")
     public ResponseEntity<?> postArticle(@RequestBody @Valid ArticleRequest articleRequest){
-        ArticleResponse articleResponse = communityService.createArticle(articleRequest);
-        return new ResponseEntity<>(articleResponse, HttpStatus.OK);
+        communityService.createArticle(articleRequest);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/revise-article")
     public ResponseEntity<?> patchArticle(@RequestBody @Valid ReviseArticleRequest articleRequest){
-        ArticleResponse articleResponse = communityService.updateArticle(articleRequest);
-        return new ResponseEntity<>(articleResponse, HttpStatus.OK);
+        communityService.updateArticle(articleRequest);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/delete-article")
     public ResponseEntity<?> deleteArticle(@RequestParam @Valid ObjectId articleId){
-        ArticleResponse articleResponse = communityService.deleteArticle(articleId);
-        return new ResponseEntity<>(articleResponse, HttpStatus.OK);
+        communityService.deleteArticle(articleId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     //댓글
