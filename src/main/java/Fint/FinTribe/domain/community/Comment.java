@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class Comment {
     @Id
     private Integer commentId;
-    private ObjectId ArticleId;
+    private ObjectId articleId;
     private String content;
     private ObjectId userId;
     private String identity;
