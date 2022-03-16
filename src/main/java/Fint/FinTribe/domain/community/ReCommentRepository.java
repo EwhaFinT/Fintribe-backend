@@ -11,6 +11,6 @@ public interface ReCommentRepository extends MongoRepository<ReComment, Integer>
     @Query("{'tagCommentId': ?0}")
     List<ReComment> findByTagCommentId(Integer commentId);
 
-    @Query("{$and:[{'_id': ?0}, {'tagCommentId': ?0}, {'articleId': ?0}]")
+    @Query("{$and:[{'_id': ?0}, {'tagCommentId': ?1}, {'articleId': ?2}]}")
     Optional<ReComment> findByIdAndTagCommentIdAndArticleId(Integer commentId, Integer tagCommentId, ObjectId articleId);
 }
