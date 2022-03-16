@@ -2,15 +2,14 @@ package Fint.FinTribe.payload.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
 public class VoteCheckResponse {
-    private ObjectId voteId;
-    private ObjectId userId;
+    private String voteId;
+    private String userId;
     private String identity;
     private String title;
     private Double resalePrice;
