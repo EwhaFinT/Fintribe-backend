@@ -4,7 +4,6 @@ import lombok.Getter;
 import org.bson.types.ObjectId;
 
 import javax.validation.constraints.NotNull;
-import java.util.List;
 
 @Getter
 public class CommentRequest {

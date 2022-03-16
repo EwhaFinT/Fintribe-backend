@@ -11,6 +11,6 @@ public interface CommentRepository extends MongoRepository<Comment, Integer> {
     @Query("{'articleId': ?0}")
     List<Comment> findByArticleId(ObjectId articleId);
 
-    @Query("{$and:[{'_id': ?0}, {'articleId': ?0}]")
+    @Query("{$and:[{'_id': ?0}, {'articleId': ?1}]}")
     Optional<Comment> findByIdAndArticleId(Integer commentId, ObjectId articleId);
 }

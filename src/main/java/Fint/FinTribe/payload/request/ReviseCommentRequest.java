@@ -16,7 +16,5 @@ public class ReviseCommentRequest {
     @NotNull
     String content;
     @NotNull
-    ObjectId communityId;
-    @NotNull
     Integer tagCommentId;
 }

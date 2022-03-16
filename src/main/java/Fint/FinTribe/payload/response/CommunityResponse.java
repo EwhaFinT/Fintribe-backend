@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 public class CommunityResponse {
     private String identity;
-    private ObjectId communityId;
+    private String communityId;
     private Boolean isDeleted;
     private List<Article> article;
 }
