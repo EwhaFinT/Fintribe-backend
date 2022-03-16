@@ -7,6 +7,6 @@ import org.springframework.data.mongodb.repository.Query;
 import java.util.List;
 
 public interface ArticleRepository extends MongoRepository<Article, ObjectId> {
-    @Query("{$and:[{'communityId': ?0}, {'isDeleted': ?0}]")
+    @Query("{$and:[{'communityId': ?0}, {'isDeleted': ?1}]}")
     List<Article> findByCommunityIdAndIsDeleted(ObjectId communityId,Boolean isDeleted);
 }
