@@ -9,6 +9,6 @@ import java.util.Optional;
 
 @Repository
 public interface CommunityRepository extends MongoRepository<Community, ObjectId> {
-    @Query("{$and:[{'artId': ?0}, {'isDeleted': ?0}]")
+    @Query("{$and:[{'artId': ?0}, {'isDeleted': ?1}]}")
     Optional<Community> findByArtIdAndIsDeleted(ObjectId objectId, Boolean isDeleted);
 }
