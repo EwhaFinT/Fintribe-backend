@@ -5,5 +5,6 @@ import lombok.*;
 @Getter
 @AllArgsConstructor
 public class SignupResponse {
+    @NonNull
     private int signupSuccess;
 }
