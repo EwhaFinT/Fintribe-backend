@@ -14,5 +14,6 @@ public class ParticipantAuction {
     private ObjectId participantAuctionId;
     private ObjectId priceId;
     private ObjectId userId;
+    private String rlp;
     private double ratio;
 }
