@@ -10,8 +10,8 @@ import java.util.Optional;
 
 @Repository
 public interface ParticipantAuctionRepository extends MongoRepository<ParticipantAuction, ObjectId> {
-    @Query("{'userId': ?0}")
-    Optional<ParticipantAuction> findByUserId(ObjectId userId);
+    @Query("{'userId': ?0, 'priceId': ?1}")
+    Optional<ParticipantAuction> findByUserIdAndPriceId(ObjectId userId, ObjectId priceId);
 
     @Query("{'auctionId': ?0}")
     List<ParticipantAuction> findByPriceId(ObjectId priceId);
