@@ -42,7 +42,12 @@ public class UserService {
     }
 
     // 3. 지갑 연결
-
+    public RegisterWalletResponse registerWallet(RegisterWalletRequest registerWalletRequest) {
+        Optional<User> user = userRespository.findById(registerWalletRequest.getUserId());
+        if(user.isEmpty()) return new RegisterWalletResponse(0);
+        updateWallet(user.get(), registerWalletRequest.getWallet());
+        return new RegisterWalletResponse(1);
+    }
 
     // 4. 마이페이지
     public MypageResponse myPage(MypageRequest mypageRequest) {
@@ -70,7 +75,7 @@ public class UserService {
         return new FindPwResponse(true);
     }
 
-    private Optional<User> findByUserId(ObjectId userId) { return userRespository.findById(userId); }
+    public Optional<User> findByUserId(ObjectId userId) { return userRespository.findById(userId); }
 
     private Optional<User> findByIdentity(String identity) {
         return userRespository.findByIdentity(identity);
@@ -114,8 +119,10 @@ public class UserService {
         user.setPw(tempPassword);
         return userRespository.save(user);
     }
-    
-    public void deleteAll() { // (단위 테스트용)
-        userRespository.deleteAll();
+
+    // 지갑 업데이트
+    private Object updateWallet(User user, String wallet) {
+        user.setWallet(wallet);
+        return userRespository.save(user);
     }
 }
