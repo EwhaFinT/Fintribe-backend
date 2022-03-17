@@ -10,16 +10,18 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
-@Document(collection = "article")
-public class Article {
+@Document(collection = "reComment")
+public class ReComment {
     @Id
+    private Integer reCommentId;
+    private Integer tagCommentId;
     private ObjectId articleId;
-    private ObjectId communityId;
+    private String content;
     private ObjectId userId;
     private String identity;
-    private String title;
-    private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private ObjectId tagUser;
+    private String tagUserIdentity;
     private Boolean isDeleted;
 }
