@@ -22,4 +22,5 @@ public class Art {
     private String paint;
     private Boolean sold = false;
     private List<ObjectId> userId;
+    private List<Double> ratio;
 }
