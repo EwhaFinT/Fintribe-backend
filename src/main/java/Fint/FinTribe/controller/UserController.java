@@ -31,10 +31,10 @@ public class UserController {
     }
 
     // 3. 지갑 연결
-    // ==== 어떻게 구현해야 할지 잘 모르겠다 ====
     @PostMapping("/wallet")
-    public ResponseEntity<?> registerMyWallet() {
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<?> registerMyWallet(@Valid @RequestBody RegisterWalletRequest registerWalletRequest) {
+        RegisterWalletResponse registerWalletResponse = userService.registerWallet(registerWalletRequest);
+        return new ResponseEntity<>(registerWalletResponse, HttpStatus.OK);
     }
 
     // 4. 마이페이지
