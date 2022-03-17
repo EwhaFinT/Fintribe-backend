@@ -16,4 +16,6 @@ public class NewPriceRequest {
     private double auctionPrice;
     @NonNull
     private double ratio;
+    @NonNull
+    private String rlp;
 }

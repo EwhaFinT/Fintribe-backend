@@ -16,4 +16,6 @@ public class ParticipateAuctionRequest {
     private ObjectId auctionId;
     @NonNull
     private double ratio;
+    @NonNull
+    private String rlp;
 }
