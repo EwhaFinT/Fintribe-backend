@@ -24,13 +24,15 @@ public class ArtService {
         // ==== nft 주소 받기 ====
         // ==== 이미지 서버 등록 ====
         List<ObjectId> userId = new ArrayList<>();
+        List<Double> ratio = new ArrayList<>();
         userId.add(uploadRequest.getUserId());
+        ratio.add(1.0);
         Art art = Art.builder()
                 .artId(new ObjectId())
                 .artName(uploadRequest.getArtName())
                 .painter(uploadRequest.getPainter())
                 .price(uploadRequest.getPrice())
-                .nftAdd(null).paint(null).userId(userId)
+                .nftAdd(null).paint(null).userId(userId).ratio(ratio)
                 .detail(uploadRequest.getDetail()).build();
         artRepository.save(art);
         auctionService.setAuctionDate(art.getArtId(), uploadRequest.getAuctionDate());
