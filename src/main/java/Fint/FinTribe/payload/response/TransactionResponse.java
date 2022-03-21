@@ -2,10 +2,12 @@ package Fint.FinTribe.payload.response;
 
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @AllArgsConstructor
 public class TransactionResponse {
     private double gas;
-    private String to;
-    private double value;
+    private List<String> to;
+    private List<Double> value;
 }
