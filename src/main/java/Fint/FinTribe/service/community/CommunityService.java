@@ -228,9 +228,16 @@ public class CommunityService {
             Vote vote = voteRepository.findById(voteRequest.getVoteId()).get();
             if(voteRequest.getChoice()){
                 vote.setAgreement(vote.getAgreement() + ratio);
+                if(vote.getAgreement() > 0.5){
+                    vote.setEndTime(LocalDateTime.now());
+                    //auction에 올리는 함수 추가
+                }
             }
             else{
                 vote.setDisagreement(vote.getDisagreement() + ratio);
+                if(vote.getDisagreement() > 0.5){
+                    vote.setEndTime(LocalDateTime.now());
+                }
             }
             voteRepository.save(vote);
             participantVoteRepository.save(newParticipant);
