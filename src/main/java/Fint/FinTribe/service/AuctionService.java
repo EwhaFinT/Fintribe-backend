@@ -5,6 +5,8 @@ import Fint.FinTribe.domain.art.ArtRepository;
 import Fint.FinTribe.domain.auction.*;
 import Fint.FinTribe.domain.auctionDate.AuctionDate;
 import Fint.FinTribe.domain.auctionDate.AuctionDateRepository;
+import Fint.FinTribe.domain.resaleDate.ResaleDate;
+import Fint.FinTribe.domain.resaleDate.ResaleDateRepository;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.NewPriceResponse;
@@ -31,6 +33,7 @@ public class AuctionService {
     private final ParticipantAuctionRepository participantAuctionRepository;
     private final PriceRepository priceRepository;
     private final AuctionDateRepository auctionDateRepository;
+    private final ResaleDateRepository resaleDateRepository;
     private final ArtRepository artRepository;
 
     private final UserService userService;
@@ -41,11 +44,10 @@ public class AuctionService {
     public TransactionResponse newPrice(NewPriceTransactionRequest newPriceTransactionRequest) {
         // 시작 경매가 확인 & 현재 상한가 확인
         PricelistResponse pricelistResponse = getPricelist(new PricelistRequest(newPriceTransactionRequest.getAuctionId()));
-        if(pricelistResponse.getPrice() > newPriceTransactionRequest.getAuctionPrice()) return new TransactionResponse(0, null, 0);
+        if(pricelistResponse.getPrice() > newPriceTransactionRequest.getAuctionPrice()) return new TransactionResponse(0, null, null);
         // 거래 진행 (프론트에서 submit == false 상태로 제출)
         return makeTransaction(newPriceTransactionRequest.getAuctionId(), newPriceTransactionRequest.getAuctionPrice(), newPriceTransactionRequest.getRatio());
     }
-
     // 1-2. 새로운 경매 가격 제안 (거래 성사)
     public NewPriceResponse newPriceSuccess(NewPriceRequest newPriceRequest) {
         // 가격 저장
@@ -62,11 +64,10 @@ public class AuctionService {
         // 가격 검사
         double remainderRatio = price.get().getRemainderRatio();
         double newRatio = participateAuctionTransactionRequest.getRatio();
-        if(remainderRatio < newRatio) return new TransactionResponse(0, null, 0);
+        if(remainderRatio < newRatio) return new TransactionResponse(0, null, null);
         // 거래 진행
         return makeTransaction(price.get().getAuctionId(), price.get().getAuctionPrice(), newRatio);
     }
-
     // 2-2. 기존 경매 참여 (거래 성사)
     public ParticipateAuctionResponse participateAuctionSuccess(ParticipateAuctionRequest participateAuctionRequest) {
         Optional<Price> price = findPriceByPriceId(participateAuctionRequest.getPriceId());
@@ -88,13 +89,20 @@ public class AuctionService {
         Optional<Auction> auction = auctionRepository.findById(auctionId);
         if(auction.isPresent()) {
             Optional<Art> art = artRepository.findById(auction.get().getArtId());
-            Optional<User> user = userService.findByUserId(art.get().getUserId().get(0));
-            double gas = 0; // ==== 가스비 임의로 설정 ====
-            String to = user.get().getWallet();
-            double value = price * ratio;
+            double gas = 0; // ==== 가스비 수정 필요 ====
+            List<String> to = new ArrayList<>(); // 판매자 리스트
+            List<Double> value = new ArrayList<>(); // 판매자별 지분 리스트
+
+            List<ObjectId> userList = art.get().getUserId();
+            List<Double> ratioList = art.get().getRatio();
+            for(int i = 0; i < userList.size(); i++) {
+                Optional<User> user = userService.findByUserId(userList.get(i));
+                to.add(user.get().getWallet());
+                value.add(price * ratio * ratioList.get(i));
+            }
             return new TransactionResponse(gas, to, value);
         }
-        return new TransactionResponse(0, null, 0);
+        return new TransactionResponse(0, null, null);
     }
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
@@ -102,14 +110,15 @@ public class AuctionService {
         List<Price> pricelist = findPricelist(pricelistRequest.getAuctionId());
         Collections.sort(pricelist, new PriceComparator());
 
+        double maxPrice = findMaxPrice(pricelist);
+
         // 1. 현재 상한가가 없는 경우 경매 시작가를 상한가로 반환
-        if(pricelist == null || !existMaxPrice(pricelist)) {
+        if(pricelist == null || maxPrice == -1) {
             Optional<Auction> auction = findAuctionByAuctionId(pricelistRequest.getAuctionId());
             Optional<Art> art = artRepository.findById(auction.get().getArtId());
             return new PricelistResponse(art.get().getPrice(), pricelist);
         }
         // 2. 현재 상한가와 기존 경매 제안 리스트 반환
-        double maxPrice = findMaxPrice(pricelist);
         return new PricelistResponse(maxPrice, pricelist);
     }
 
@@ -125,6 +134,7 @@ public class AuctionService {
             if(pricelist.get(maxIndex).getRemainderRatio() == 0)
                 break;
         }
+        if(maxIndex == pricelist.size()) return -1; // 현재 상한가가 없는 경우
         return pricelist.get(maxIndex).getAuctionPrice();
     }
 
@@ -142,7 +152,7 @@ public class AuctionService {
         return newPriceId;
     }
 
-    private Object saveParticipantAuction(ObjectId priceId, ObjectId userId, double ratio, String transactionHash) {
+    private Object saveParticipantAuction(ObjectId priceId, ObjectId userId, double ratio, List<String> transactionHash) {
         ParticipantAuction participantAuction = ParticipantAuction.builder()
                 .participantAuctionId(new ObjectId()).priceId(priceId).userId(userId)
                 .ratio(ratio).rlp(transactionHash).build();
@@ -172,31 +182,39 @@ public class AuctionService {
         else auctionMap.put(priceId, price.get());
     }
 
-    private boolean existMaxPrice(List<Price> pricelist) {
-        for(int i = 0; i < pricelist.size(); i++) {
-            if(pricelist.get(i).getRemainderRatio() == 0) return true;
-        }
-        return false;
+    // 현재 진행중인 경매 정보 반환
+    public List<Auction> getAuctions() { return auctionRepository.findByIsDeleted(false); }
+
+    // 경매 종료 (논리 삭제)
+    public void deleteAuctions() {
+        List<Auction> auctionList = getAuctions();
+        for(int i = 0; i < auctionList.size(); i++) deleteAuction(auctionList.get(i));
     }
 
-    // 현재 경매 정보 반환
-    public List<Auction> getAuctions() { return auctionRepository.findAll(); }
-
-    // 경매 삭제
-    public void deleteAuctions() { auctionRepository.deleteAll(); }
+    private Object deleteAuction(Auction auction) {
+        auction.setDeleted(true);
+        return auctionRepository.save(auction);
+    }
 
     // 경매 생성
     public void makeAuctions (LocalDate date) {
+        // 경매 조회
         Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(date);
         if(auctionDate.isPresent()) {
             List<ObjectId> artIdList = auctionDate.get().getArtId();
+            for(int i = 0; i < artIdList.size(); i++) saveAuction(artIdList.get(i));
+        }
+        // 재경매 조회
+        Optional<ResaleDate> resaleDate = resaleDateRepository.findByResaleDate(date);
+        if(resaleDate.isPresent()) {
+            List<ObjectId> artIdList = resaleDate.get().getArtId();
             for(int i = 0; i < artIdList.size(); i++) saveAuction(artIdList.get(i));
         }
     }
 
     private Object saveAuction(ObjectId artId) {
         Auction auction = Auction.builder()
-                .auctionId(new ObjectId()).artId(artId).build();
+                .auctionId(new ObjectId()).artId(artId).isDeleted(false).build();
         return auctionRepository.save(auction);
     }
 
@@ -207,15 +225,15 @@ public class AuctionService {
             ObjectId priceId = keys.next();
             List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(priceId);
 
-            int participantCount = participantAuctionList.size();
             List<ObjectId> participantUserId = new ArrayList<>();
             List<Double> participantRatio = new ArrayList<>();
-            List<String> participantRlp = new ArrayList<>();
+            List<String> rlp = new ArrayList<>();
 
-            for(int i = 0; i < participantCount; i++) {
+            for(int i = 0; i < participantAuctionList.size(); i++) {
                 participantUserId.add(participantAuctionList.get(i).getUserId());
                 participantRatio.add(participantAuctionList.get(i).getRatio());
-                participantRlp.add(participantAuctionList.get(i).getRlp());
+                List<String> participantRlp = participantAuctionList.get(i).getRlp();
+                for(int j = 0; j < participantRlp.size(); j++) rlp.add(participantRlp.get(j));
             }
 
             // 판매 상태 변경
@@ -224,9 +242,9 @@ public class AuctionService {
             changeSoldState(auction.get().getArtId(), participantUserId, participantRatio);
 
             // 결제 승인
-            for(int i = 0; i < participantCount; i++) {
+            for(int i = 0; i < rlp.size(); i++) {
                 // klaytn 대납 기능을 통해 거래 submit
-                submitRlpTransaction(participantRlp.get(i));
+                submitRlpTransaction(rlp.get(i));
             }
         }
         auctionMap.clear();
@@ -252,9 +270,8 @@ public class AuctionService {
         return artRepository.save(art);
     }
 
-    public void setAuctionDate(ObjectId artId, LocalDate date) {
+    public void setAuctionDate(ObjectId artId, LocalDate date) { // (작품 업로드)
         Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(date);
-        System.out.println(date);
         if(auctionDate.isPresent()) updateAuctionDate(artId, auctionDate.get());
         else saveAuctionDate(date, artId);
     }
