@@ -5,7 +5,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -14,6 +14,6 @@ import java.util.List;
 public class ResaleDate {
     @Id
     private ObjectId resaleDateId;
-    private LocalDateTime resaleDate;
+    private LocalDate resaleDate;
     private List<ObjectId> artId;
 }

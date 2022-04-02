@@ -45,14 +45,14 @@ public class UserController {
     }
 
     // 5. 아이디 찾기
-    @PostMapping("/findId")
+    @GetMapping("/find-id")
     public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest findIdRequest) {
         FindIdResponse findIdResponse = userService.findId(findIdRequest);
         return new ResponseEntity<>(findIdResponse, HttpStatus.OK);
     }
 
     // 6. 비밀번호 찾기
-    @PostMapping("/findPw")
+    @GetMapping("/find-pw")
     public ResponseEntity<?> findPw(@Valid @RequestBody FindPwRequest findPwRequest) {
         FindPwResponse findPwResponse = userService.findPw(findPwRequest);
         return new ResponseEntity<>(findPwResponse, HttpStatus.OK);

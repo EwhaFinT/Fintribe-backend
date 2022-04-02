@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import org.bson.types.ObjectId;
 
+import java.util.List;
+
 @Getter
 @AllArgsConstructor
 public class NewPriceRequest {
@@ -17,5 +19,5 @@ public class NewPriceRequest {
     @NonNull
     private double ratio;
     @NonNull
-    private String rlp;
+    private List<String> rlp;
 }

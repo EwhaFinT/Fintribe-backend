@@ -95,7 +95,7 @@ public class UserService {
     private SimpleMailMessage makeEmailForm(String to, String title, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
-        message.setFrom("serena35@ewhain.net"); // ==== 메일 주소 수정 필요 ====
+        message.setFrom("ewhafint@gmail.com");
         message.setSubject(title);
         message.setText(text);
         return message;
