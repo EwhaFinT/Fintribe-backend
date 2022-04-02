@@ -29,7 +29,7 @@ public class AuctionController {
         return new ResponseEntity<>(transactionResponse, HttpStatus.OK);
     }
     // 1-2. 거래 성사
-    @PostMapping("/priceSuccess")
+    @PostMapping("/price-success")
     public ResponseEntity<?> newPriceSuccess(@Valid @RequestBody NewPriceRequest newPriceRequest) {
         NewPriceResponse newPriceResponse = auctionService.newPriceSuccess(newPriceRequest);
         return new ResponseEntity<>(newPriceResponse, HttpStatus.OK);
@@ -43,7 +43,7 @@ public class AuctionController {
         return new ResponseEntity<>(transactionResponse, HttpStatus.OK);
     }
     // 2-2. 거래 성사
-    @PostMapping("/participateSuccess")
+    @PostMapping("/participate-success")
     public ResponseEntity<?> participateAuctionSuccess(@Valid @RequestBody ParticipateAuctionRequest participateAuctionRequest) {
         ParticipateAuctionResponse participateAuctionResponse = auctionService.participateAuctionSuccess(participateAuctionRequest);
         return new ResponseEntity<>(participateAuctionResponse, HttpStatus.OK);
@@ -57,7 +57,7 @@ public class AuctionController {
     }
 
     // 4. 현재 진행중인 경매 반환
-    @GetMapping("/validAuction")
+    @GetMapping("/valid-auction")
     public ResponseEntity<?> getValidAuctions() {
         List<Auction> auctions = auctionService.getAuctions();
         return new ResponseEntity<>(new ValidAuctionResponse(auctions), HttpStatus.OK);
