@@ -18,4 +18,7 @@ public class VoteCheckResponse {
     private Boolean isDeleted;
     private Double agreement;
     private Double disagreement;
+    public VoteCheckResponse(String msg){
+        voteId = msg;
+    }
 }
