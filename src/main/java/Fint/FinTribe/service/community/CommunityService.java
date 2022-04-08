@@ -21,7 +21,7 @@ public class CommunityService {
     private final ReCommentRepository reCommentRepository;
     private final VoteRepository voteRepository;
     private final ParticipantVoteRepository participantVoteRepository;
-//    private final UserService userService;
+    private final UserService userService;
 
     //DB community 조회
     private Community findCommunityByArtId(ObjectId artId){
@@ -59,8 +59,7 @@ public class CommunityService {
     //Comment entity 생성
     private Comment commentRequestToEntity(CommentRequest commentRequest, Integer commentId){
         LocalDateTime now = LocalDateTime.now();
-        User user = new User();
-//        User user = userService.findByUserId(commentRequest.getUserId()).get();
+        User user = userService.findByUserId(commentRequest.getUserId()).get();
         return Comment.builder()
                 .commentId(commentId)
                 .articleId(commentRequest.getArticleId())
@@ -76,10 +75,8 @@ public class CommunityService {
     //ReComment entity 생성
     private ReComment reCommentRequestToEntity(CommentRequest commentRequest, Integer commentId){
         LocalDateTime now = LocalDateTime.now();
-        User user = new User();
-        User tagUser = new User();
-//        User user = userService.findByUserId(commentRequest.getUserId()).get();
-//        User tagUser = userService.findByUserId(commentRequest.getTagUser()).get();
+        User user = userService.findByUserId(commentRequest.getUserId()).get();
+        User tagUser = userService.findByUserId(commentRequest.getTagUser()).get();
         return ReComment.builder()
                 .reCommentId(commentId)
                 .tagCommentId(commentRequest.getTagCommentId())
@@ -98,8 +95,7 @@ public class CommunityService {
     //Vote entity 생성
     private Vote voteProposalRequestToEntity(VoteProposalRequest voteRequest){
         LocalDateTime now = LocalDateTime.now();
-        User user = new User();
-//        User user = userService.findByUserId(voteRequest.getUserId()).get();
+        User user = userService.findByUserId(voteRequest.getUserId()).get();
         return Vote.builder()
                 .communityId(voteRequest.getCommunityId())
                 .userId(voteRequest.getUserId())
@@ -123,8 +119,7 @@ public class CommunityService {
     //Community 조회
     public CommunityResponse getCommunity(ObjectId artId, ObjectId userId){
         Community community = findCommunityByArtId(artId);
-        User user = new User();
-//        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
+        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
         return new CommunityResponse(user.getIdentity(), community.getCommunityId().toString(), community.getIsDeleted(), findArticlesByCommunityId(community.getCommunityId()));
     }
 
