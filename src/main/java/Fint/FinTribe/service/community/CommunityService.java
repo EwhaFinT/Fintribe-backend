@@ -4,6 +4,7 @@ import Fint.FinTribe.domain.community.*;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
+import Fint.FinTribe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
