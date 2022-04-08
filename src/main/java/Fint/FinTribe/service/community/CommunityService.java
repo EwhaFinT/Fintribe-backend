@@ -134,7 +134,11 @@ public class CommunityService {
     public ArticleResponse updateArticle(ReviseArticleRequest articleRequest){
         LocalDateTime now = LocalDateTime.now();
 
-        Article article = articleRepository.findById(articleRequest.getArticleId()).get();
+        Optional<Article> articleOp = articleRepository.findById(articleRequest.getArticleId());
+        if(!articleOp.isPresent()){
+            return new ArticleResponse("No such article");
+        }
+        Article article = articleOp.get();
         article.setTitle(articleRequest.getTitle());
         article.setContent(articleRequest.getContent());
         article.setUpdatedAt(now);
@@ -144,7 +148,11 @@ public class CommunityService {
 
     //Article 삭제
     public ArticleResponse deleteArticle(ObjectId articleId){
-        Article article = articleRepository.findById(articleId).get();
+        Optional<Article> articleOp = articleRepository.findById(articleId);
+        if(!articleOp.isPresent()){
+            return new ArticleResponse("No such article");
+        }
+        Article article = articleOp.get();
         article.setIsDeleted(true);
         articleRepository.save(article);
         return new ArticleResponse("success");
@@ -179,13 +187,21 @@ public class CommunityService {
     public CommentResponse updateComment(ReviseCommentRequest commentRequest){
         LocalDateTime now = LocalDateTime.now();
         if(commentRequest.getTagCommentId() == -1){
-            Comment comment = commentRepository.findByIdAndArticleId(commentRequest.getCommentId(), commentRequest.getArticleId()).get();
+            Optional<Comment> commentOp = commentRepository.findByIdAndArticleId(commentRequest.getCommentId(), commentRequest.getArticleId());
+            if(!commentOp.isPresent()){
+                return new CommentResponse("No Such Comment");
+            }
+            Comment comment = commentOp.get();
             comment.setContent(commentRequest.getContent());
             comment.setUpdatedAt(now);
             commentRepository.save(comment);
         }
         else{
-            ReComment comment = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentRequest.getCommentId(), commentRequest.getTagCommentId(), commentRequest.getArticleId()).get();
+            Optional<ReComment> commentOp = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentRequest.getCommentId(), commentRequest.getTagCommentId(), commentRequest.getArticleId());
+            if(!commentOp.isPresent()){
+                return new CommentResponse("No Such Comment");
+            }
+            ReComment comment = commentOp.get();
             comment.setContent(commentRequest.getContent());
             comment.setUpdatedAt(now);
             reCommentRepository.save(comment);
@@ -196,12 +212,20 @@ public class CommunityService {
     //Comment 삭제
     public CommentResponse deleteComment(ObjectId articleId, Integer commentId, Integer tagCommentId){
         if(tagCommentId == -1){
-            Comment comment = commentRepository.findByIdAndArticleId(commentId, articleId).get();
+            Optional<Comment> commentOp = commentRepository.findByIdAndArticleId(commentId, articleId);
+            if(!commentOp.isPresent()){
+                return new CommentResponse("No Such Comment");
+            }
+            Comment comment = commentOp.get();
             comment.setIsDeleted(true);
             commentRepository.save(comment);
         }
         else{
-            ReComment comment = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentId, tagCommentId, articleId).get();
+            Optional<ReComment> commentOp = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentId, tagCommentId, articleId);
+            if(!commentOp.isPresent()){
+                return new CommentResponse("No Such Comment");
+            }
+            ReComment comment = commentOp.get();
             comment.setIsDeleted(true);
             reCommentRepository.save(comment);
         }
@@ -244,7 +268,11 @@ public class CommunityService {
 
     //Vote 조회
     public VoteCheckResponse getVoteInformation(ObjectId voteId){
-        Vote vote = voteRepository.findById(voteId).get();
+        Optional<Vote> voteOp = voteRepository.findById(voteId);
+        if(!voteOp.isPresent()){
+            return new VoteCheckResponse("No such vote");
+        }
+        Vote vote = voteOp.get();
         return new VoteCheckResponse(voteId.toString(), vote.getUserId().toString(), vote.getIdentity(),
                 vote.getTitle(), vote.getResalePrice(), vote.getStartTime(), vote.getEndTime(),
                 vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement());
