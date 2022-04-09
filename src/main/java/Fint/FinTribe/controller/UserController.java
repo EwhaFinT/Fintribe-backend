@@ -4,6 +4,7 @@ import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,8 +26,8 @@ public class UserController {
 
     // 2. 로그인
     @GetMapping("/login")
-    public ResponseEntity<?> loginUser(@Valid @RequestParam LoginRequest loginRequest) {
-        LoginResponse loginResponse = userService.loginUser(loginRequest);
+    public ResponseEntity<?> loginUser(@Valid @RequestParam("identity") String identity, @Valid @RequestParam("password") String password) {
+        LoginResponse loginResponse = userService.loginUser(identity, password);
         return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
 
@@ -39,22 +40,22 @@ public class UserController {
 
     // 4. 마이페이지
     @GetMapping("/mypage")
-    public ResponseEntity<?> myPage(@Valid @RequestParam MypageRequest mypageRequest) {
-        MypageResponse mypageResponse = userService.myPage(mypageRequest);
+    public ResponseEntity<?> myPage(@Valid @RequestParam("userId") ObjectId userId) {
+        MypageResponse mypageResponse = userService.myPage(userId);
         return new ResponseEntity<>(mypageResponse, HttpStatus.OK);
     }
 
     // 5. 아이디 찾기
     @GetMapping("/find-id")
-    public ResponseEntity<?> findId(@Valid @RequestParam FindIdRequest findIdRequest) {
-        FindIdResponse findIdResponse = userService.findId(findIdRequest);
+    public ResponseEntity<?> findId(@Valid @RequestParam("name") String name, @Valid @RequestParam("phone") String phone) {
+        FindIdResponse findIdResponse = userService.findId(name, phone);
         return new ResponseEntity<>(findIdResponse, HttpStatus.OK);
     }
 
     // 6. 비밀번호 찾기
     @GetMapping("/find-pw")
-    public ResponseEntity<?> findPw(@Valid @RequestParam FindPwRequest findPwRequest) {
-        FindPwResponse findPwResponse = userService.findPw(findPwRequest);
+    public ResponseEntity<?> findPw(@Valid @RequestParam("identity") String identity, @Valid @RequestParam("email") String email) {
+        FindPwResponse findPwResponse = userService.findPw(identity, email);
         return new ResponseEntity<>(findPwResponse, HttpStatus.OK);
     }
 }
