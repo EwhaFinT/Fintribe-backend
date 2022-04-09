@@ -5,6 +5,7 @@ import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.AuctionService;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -51,8 +52,8 @@ public class AuctionController {
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
     @GetMapping("/pricelist")
-    public ResponseEntity<?> getPricelist(@Valid @RequestParam PricelistRequest pricelistRequest) {
-        PricelistResponse pricelistResponse = auctionService.getPricelist(pricelistRequest);
+    public ResponseEntity<?> getPricelist(@Valid @RequestParam("auctionId") ObjectId auctionId) {
+        PricelistResponse pricelistResponse = auctionService.getPricelist(auctionId);
         return new ResponseEntity<>(pricelistResponse, HttpStatus.OK);
     }
 

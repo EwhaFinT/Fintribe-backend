@@ -43,7 +43,7 @@ public class AuctionService {
     // 1-1. 새로운 경매 가격 제안 (거래 요청)
     public TransactionResponse newPrice(NewPriceTransactionRequest newPriceTransactionRequest) {
         // 시작 경매가 확인 & 현재 상한가 확인
-        PricelistResponse pricelistResponse = getPricelist(new PricelistRequest(newPriceTransactionRequest.getAuctionId()));
+        PricelistResponse pricelistResponse = getPricelist(newPriceTransactionRequest.getAuctionId());
         if(pricelistResponse.getPrice() > newPriceTransactionRequest.getAuctionPrice()) return new TransactionResponse(0, null, null);
         // 거래 진행 (프론트에서 submit == false 상태로 제출)
         return makeTransaction(newPriceTransactionRequest.getAuctionId(), newPriceTransactionRequest.getAuctionPrice(), newPriceTransactionRequest.getRatio());
@@ -106,15 +106,15 @@ public class AuctionService {
     }
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
-    public PricelistResponse getPricelist(PricelistRequest pricelistRequest) {
-        List<Price> pricelist = findPricelist(pricelistRequest.getAuctionId());
+    public PricelistResponse getPricelist(ObjectId auctionId) {
+        List<Price> pricelist = findPricelist(auctionId);
         Collections.sort(pricelist, new PriceComparator());
 
         double maxPrice = findMaxPrice(pricelist);
 
         // 1. 현재 상한가가 없는 경우 경매 시작가를 상한가로 반환
         if(pricelist == null || maxPrice == -1) {
-            Optional<Auction> auction = findAuctionByAuctionId(pricelistRequest.getAuctionId());
+            Optional<Auction> auction = findAuctionByAuctionId(auctionId);
             Optional<Art> art = artRepository.findById(auction.get().getArtId());
             return new PricelistResponse(art.get().getPrice(), pricelist);
         }

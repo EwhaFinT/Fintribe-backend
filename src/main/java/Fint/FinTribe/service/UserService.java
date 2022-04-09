@@ -34,10 +34,10 @@ public class UserService {
     }
 
     // 2. 로그인
-    public LoginResponse loginUser(LoginRequest loginRequest) {
-        Optional<User> user = findByIdentity(loginRequest.getIdentity());
+    public LoginResponse loginUser(String identity, String password) {
+        Optional<User> user = findByIdentity(identity);
         if(user.isEmpty()) return new LoginResponse(null, "해당 아이디가 존재하지 않습니다."); // 해당 아이디가 존재하지 않음
-        if(!securityConfig.passwordEncoder().matches(loginRequest.getPassword(), user.get().getPw())) return new LoginResponse(null, "비밀번호가 일치하지 않습니다."); // 비밀번호가 일치하지 않음
+        if(!securityConfig.passwordEncoder().matches(password, user.get().getPw())) return new LoginResponse(null, "비밀번호가 일치하지 않습니다."); // 비밀번호가 일치하지 않음
         return new LoginResponse(user.get().getUserId(), "로그인에 성공했습니다.");
     }
 
@@ -50,27 +50,27 @@ public class UserService {
     }
 
     // 4. 마이페이지
-    public MypageResponse myPage(MypageRequest mypageRequest) {
-        Optional<User> user = userRespository.findById(mypageRequest.getUserId());
+    public MypageResponse myPage(ObjectId userId) {
+        Optional<User> user = userRespository.findById(userId);
         if(user.isEmpty()) return new MypageResponse(null, null);
         return new MypageResponse(user.get().getWallet(), user.get().getArtId());
     }
 
     // 5. 아이디 찾기
-    public FindIdResponse findId(FindIdRequest findIdRequest) {
-        Optional<User> user = userRespository.findByNameAndPhone(findIdRequest.getName(), findIdRequest.getPhone());
+    public FindIdResponse findId(String name, String phone) {
+        Optional<User> user = userRespository.findByNameAndPhone(name, phone);
         if(user.isEmpty()) return new FindIdResponse(null); // 해당 정보와 일치하는 사용자 존재하지 않음
         return new FindIdResponse(user.get().getIdentity());
     }
 
     // 6. 비밀번호 찾기
-    public FindPwResponse findPw(FindPwRequest findPwRequest) {
-        Optional<User> user = userRespository.findByIdentityAndEmail(findPwRequest.getIdentity(), findPwRequest.getEmail());
+    public FindPwResponse findPw(String identity, String email) {
+        Optional<User> user = userRespository.findByIdentityAndEmail(identity, email);
         if(user.isEmpty()) return new FindPwResponse(false); // 해당 정보와 일치하는 사용자 존재하지 않음
         String tempPassword = makeTempPassword();
         updatePassword(tempPassword, user.get());
         String emailText = user.get().getName() + "님의 임시 비밀번호는 [" + tempPassword + "] 입니다.";
-        SimpleMailMessage message = makeEmailForm(findPwRequest.getEmail(), "[FinTribe: 비밀번호 찾기]", emailText);
+        SimpleMailMessage message = makeEmailForm(email, "[FinTribe: 비밀번호 찾기]", emailText);
         javaMailSender.send(message);
         return new FindPwResponse(true);
     }
