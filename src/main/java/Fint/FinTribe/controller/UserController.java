@@ -25,7 +25,7 @@ public class UserController {
 
     // 2. 로그인
     @GetMapping("/login")
-    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> loginUser(@Valid @RequestParam LoginRequest loginRequest) {
         LoginResponse loginResponse = userService.loginUser(loginRequest);
         return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
@@ -38,22 +38,22 @@ public class UserController {
     }
 
     // 4. 마이페이지
-    @PostMapping("/mypage")
-    public ResponseEntity<?> myPage(@Valid @RequestBody MypageRequest mypageRequest) {
+    @GetMapping("/mypage")
+    public ResponseEntity<?> myPage(@Valid @RequestParam MypageRequest mypageRequest) {
         MypageResponse mypageResponse = userService.myPage(mypageRequest);
         return new ResponseEntity<>(mypageResponse, HttpStatus.OK);
     }
 
     // 5. 아이디 찾기
     @GetMapping("/find-id")
-    public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest findIdRequest) {
+    public ResponseEntity<?> findId(@Valid @RequestParam FindIdRequest findIdRequest) {
         FindIdResponse findIdResponse = userService.findId(findIdRequest);
         return new ResponseEntity<>(findIdResponse, HttpStatus.OK);
     }
 
     // 6. 비밀번호 찾기
     @GetMapping("/find-pw")
-    public ResponseEntity<?> findPw(@Valid @RequestBody FindPwRequest findPwRequest) {
+    public ResponseEntity<?> findPw(@Valid @RequestParam FindPwRequest findPwRequest) {
         FindPwResponse findPwResponse = userService.findPw(findPwRequest);
         return new ResponseEntity<>(findPwResponse, HttpStatus.OK);
     }

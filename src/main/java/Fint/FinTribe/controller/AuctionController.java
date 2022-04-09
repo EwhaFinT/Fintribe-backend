@@ -51,7 +51,7 @@ public class AuctionController {
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
     @GetMapping("/pricelist")
-    public ResponseEntity<?> getPricelist(@Valid @RequestBody PricelistRequest pricelistRequest) {
+    public ResponseEntity<?> getPricelist(@Valid @RequestParam PricelistRequest pricelistRequest) {
         PricelistResponse pricelistResponse = auctionService.getPricelist(pricelistRequest);
         return new ResponseEntity<>(pricelistResponse, HttpStatus.OK);
     }
