@@ -12,8 +12,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -79,6 +78,16 @@ public class UserService {
 
     private Optional<User> findByIdentity(String identity) {
         return userRespository.findByIdentity(identity);
+    }
+
+    public List<ObjectId> getArtId(ObjectId userId){
+        Optional<User> user = this.findByUserId(userId);
+        if(user.isPresent()){
+            return user.get().getArtId();
+        }
+        else {
+            return new ArrayList<>();
+        }
     }
 
     private Object saveUser(String identity, String password, String name, String phone, String email) { // 회원 저장
