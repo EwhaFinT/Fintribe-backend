@@ -38,4 +38,9 @@ public class ArtService {
         auctionService.setAuctionDate(art.getArtId(), uploadRequest.getAuctionDate());
         return new UploadResponse(art.getPaint());
     }
+
+    public Art findArtById(ObjectId artId){
+        //TODO; error ctrl 필요함
+        return artRepository.findById(artId).orElseThrow();
+    }
 }
