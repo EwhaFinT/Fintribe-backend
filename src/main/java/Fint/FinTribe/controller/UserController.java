@@ -60,7 +60,7 @@ public class UserController {
     }
 
     // 7. 아이디 중복 조회
-    @GetMapping("id-check")
+    @GetMapping("/check-id")
     public ResponseEntity<?> idCheck(@Valid @RequestParam("identity") String identity) {
         IdCheckResponse idCheckResponse = userService.idCheck(identity);
         return new ResponseEntity<>(idCheckResponse, HttpStatus.OK);
