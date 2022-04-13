@@ -58,4 +58,11 @@ public class UserController {
         FindPwResponse findPwResponse = userService.findPw(identity, email);
         return new ResponseEntity<>(findPwResponse, HttpStatus.OK);
     }
+
+    // 7. 아이디 중복 조회
+    @GetMapping("id-check")
+    public ResponseEntity<?> idCheck(@Valid @RequestParam("identity") String identity) {
+        IdCheckResponse idCheckResponse = userService.idCheck(identity);
+        return new ResponseEntity<>(idCheckResponse, HttpStatus.OK);
+    }
 }
