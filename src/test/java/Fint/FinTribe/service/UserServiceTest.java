@@ -45,41 +45,36 @@ class UserServiceTest {
     @Test
     @DisplayName("로그인 성공 테스트")
     void loginUserSuccess() {
-        LoginRequest loginRequest = new LoginRequest("identity", "password");
-        LoginResponse loginResponse = userService.loginUser(loginRequest);
+        LoginResponse loginResponse = userService.loginUser("identity", "password");
         Assertions.assertThat(loginResponse.getUserId()).isNotEqualTo(null);
     }
 
     @Test
     @DisplayName("로그인 실패 테스트 - 존재하지 않는 회원")
     void loginUserFail() {
-        LoginRequest loginRequest = new LoginRequest("identity", "password");
-        LoginResponse loginResponse = userService.loginUser(loginRequest);
+        LoginResponse loginResponse = userService.loginUser("identity", "password");
         Assertions.assertThat(loginResponse.getUserId()).isEqualTo(null);
     }
 
     @Test
     @DisplayName("로그인 실패 테스트 - 비밀번호 불일치")
     void loginUserFail2() {
-        LoginRequest loginRequest = new LoginRequest("identity", "password2");
-        LoginResponse loginResponse = userService.loginUser(loginRequest);
+        LoginResponse loginResponse = userService.loginUser("identity", "password2");
         Assertions.assertThat(loginResponse.getUserId()).isEqualTo(null);
     }
 
     @Test
     @DisplayName("마이페이지 테스트")
     void myPage() {
-        LoginRequest loginRequest = new LoginRequest("identity", "password");
-        MypageRequest mypageRequest = new MypageRequest(userService.loginUser(loginRequest).getUserId());
-        MypageResponse mypageResponse = userService.myPage(mypageRequest);
+        ObjectId userId = userService.loginUser("identity", "password").getUserId();
+        MypageResponse mypageResponse = userService.myPage(userId);
         Assertions.assertThat(mypageResponse);
     }
 
     @Test
     @DisplayName("아이디 찾기 성공 테스트")
     void findIdSuccess() {
-        FindIdRequest findIdRequest = new FindIdRequest("name", "010-1886-1886");
-        FindIdResponse findIdResponse = userService.findId(findIdRequest);
+        FindIdResponse findIdResponse = userService.findId("name", "010-1886-1886");
         System.out.println(findIdResponse.getIdentity());
         Assertions.assertThat(findIdResponse.getIdentity()).isEqualTo("identity");
     }
@@ -87,24 +82,21 @@ class UserServiceTest {
     @Test
     @DisplayName("아이디 찾기 실패 테스트")
     void findIdFail() {
-        FindIdRequest findIdRequest = new FindIdRequest("name_", "010-1886-1886");
-        FindIdResponse findIdResponse = userService.findId(findIdRequest);
+        FindIdResponse findIdResponse = userService.findId("name_", "010-1886-1886");
         Assertions.assertThat(findIdResponse.getIdentity()).isEqualTo(null);
     }
 
     @Test
     @DisplayName("비밀번호 찾기 성공 테스트")
     void findPwSuccess() {
-        FindPwRequest findPwRequest = new FindPwRequest("identity", "serena35@ewhain.net");
-        FindPwResponse findPwResponse = userService.findPw(findPwRequest);
+        FindPwResponse findPwResponse = userService.findPw("identity", "serena35@ewhain.net");
         Assertions.assertThat(findPwResponse.isEmailSuccess()).isEqualTo(true);
     }
 
     @Test
     @DisplayName("비밀번호 찾기 실패 테스트")
     void findPwFail() {
-        FindPwRequest findPwRequest = new FindPwRequest("identity2", "serena35@ewhain.net");
-        FindPwResponse findPwResponse = userService.findPw(findPwRequest);
+        FindPwResponse findPwResponse = userService.findPw("identity2", "serena35@ewhain.net");
         Assertions.assertThat(findPwResponse.isEmailSuccess()).isEqualTo(false);
     }
 

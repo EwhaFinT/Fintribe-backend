@@ -74,6 +74,12 @@ public class UserService {
         return new FindPwResponse(true);
     }
 
+    // 7. 아이디 중복 검사
+    public IdCheckResponse idCheck(String identity) {
+        if(findByIdentity(identity).isPresent()) return new IdCheckResponse(0);
+        return new IdCheckResponse(1);
+    }
+
     public Optional<User> findByUserId(ObjectId userId) { return userRespository.findById(userId); }
 
     private Optional<User> findByIdentity(String identity) {
