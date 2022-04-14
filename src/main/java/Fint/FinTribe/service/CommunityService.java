@@ -1,16 +1,18 @@
-package Fint.FinTribe.service.community;
+package Fint.FinTribe.service;
 
+import Fint.FinTribe.domain.art.Art;
 import Fint.FinTribe.domain.community.*;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
-import Fint.FinTribe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -23,15 +25,17 @@ public class CommunityService {
     private final VoteRepository voteRepository;
     private final ParticipantVoteRepository participantVoteRepository;
     private final UserService userService;
-
-    //DB community 조회
-    private Community findCommunityByArtId(ObjectId artId){
-        return communityRepository.findByArtIdAndIsDeleted(artId, false).get();
-    }
+    private final ArtService artService;
 
     //DB Article 조회
     private List<Article> findArticlesByCommunityId(ObjectId communityId){
         return articleRepository.findByCommunityIdAndIsDeleted(communityId, false);
+    }
+
+    //DB Article 개별 조회
+    //TODO; error ctrl
+    private Article findArticleById(ObjectId articleId){
+        return articleRepository.findByArticleIdAndIsDeleted(articleId, false).orElseThrow();
     }
 
     //Community entity 생성
@@ -118,10 +122,39 @@ public class CommunityService {
     }
 
     //Community 조회
-    public CommunityResponse getCommunity(ObjectId artId, ObjectId userId){
-        Community community = findCommunityByArtId(artId);
-        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
-        return new CommunityResponse(user.getIdentity(), community.getCommunityId().toString(), community.getIsDeleted(), findArticlesByCommunityId(community.getCommunityId()));
+//    public CommunityResponse getCommunity(ObjectId artId, ObjectId userId){
+//        Community community = findCommunityByArtId(artId);
+//        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
+//        return new CommunityResponse(user.getIdentity(), community.getCommunityId().toString(), community.getIsDeleted(), findArticlesByCommunityId(community.getCommunityId()));
+//    }
+
+    //유저가 방문할 수 있는 커뮤니티 조회
+    public CommunitiesResponse getCommunities(ObjectId userId){
+        return new CommunitiesResponse(userService.getArtId(userId));
+    }
+
+    //커뮤니티 내 미술품 정보 받기
+    public CommunityResponse getCommunity(ObjectId communityId){
+        Community community = communityRepository.findById(communityId).orElseThrow();
+        Art art = artService.findArtById(community.getArtId());
+        return new CommunityResponse(art.getPainter(), art.getArtName(), art.getDetail(), art.getPrice(), art.getNftAdd(), art.getPaint());
+    }
+
+    //게시글 목록 받기
+    public ArticlesResponse getArticleList(ObjectId communityId){
+        List<Article> articleList = findArticlesByCommunityId(communityId);
+        Map<ObjectId, String> articles = new HashMap<>();
+        for(Article article : articleList){
+            articles.put(article.getArticleId(), article.getTitle());
+        }
+        return new ArticlesResponse(articles);
+    }
+
+    //TODO; articleId로 article 정보 가져오기 -> 필요한 DTO create
+    //댓글, 대댓글도 같이 들고 오기
+    public ArticleAndCommentResponse getArticle(ObjectId articleId){
+        Article article = findArticleById(articleId);
+        return new ArticleAndCommentResponse(article, commentRepository.findByArticleId(articleId), reCommentRepository.findByArticleId(articleId));
     }
 
     //Article 생성
@@ -173,7 +206,7 @@ public class CommunityService {
             if(commentRepository.findById(commentRequest.getTagCommentId()).get().getIsDeleted()){
                 return new CommentResponse("deleted comment");
             }
-            List<ReComment> commentList = reCommentRepository.findByTagCommentId(commentRequest.getTagCommentId());
+            List<ReComment> commentList = reCommentRepository.findByArticleIdAndTagCommentId(commentRequest.getArticleId(), commentRequest.getTagCommentId());
             if(commentList.isEmpty())
                 lastComment = -1;
             else
