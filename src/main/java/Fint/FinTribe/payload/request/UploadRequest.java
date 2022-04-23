@@ -22,4 +22,6 @@ public class UploadRequest {
     private LocalDate auctionDate;
     @NonNull
     private String detail;
+    @NonNull
+    private String paint;
 }
