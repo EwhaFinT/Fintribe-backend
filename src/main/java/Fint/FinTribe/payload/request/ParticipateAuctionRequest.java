@@ -11,11 +11,11 @@ import java.util.List;
 @AllArgsConstructor
 public class ParticipateAuctionRequest {
     @NonNull
-    private ObjectId userId;
+    private String userId;
     @NonNull
-    private ObjectId priceId;
+    private String priceId;
     @NonNull
-    private ObjectId auctionId;
+    private String auctionId;
     @NonNull
     private double ratio;
     @NonNull

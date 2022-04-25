@@ -8,6 +8,5 @@ import org.bson.types.ObjectId;
 @Getter
 @AllArgsConstructor
 public class ParticipateAuctionResponse {
-    @NonNull
-    private ObjectId priceId;
+    private String priceId;
 }
