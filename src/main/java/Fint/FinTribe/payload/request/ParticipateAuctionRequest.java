@@ -3,7 +3,6 @@ package Fint.FinTribe.payload.request;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
-import org.bson.types.ObjectId;
 
 import java.util.List;
 
