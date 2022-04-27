@@ -34,8 +34,8 @@ public class ArtController {
 
     // 3. art 상세 정보 반환
     @GetMapping("/art-info")
-    public ResponseEntity<?> getArtInfo(@Valid @RequestParam("artId") ObjectId artId) {
-        Art art = artService.getArtInfo(artId);
+    public ResponseEntity<?> getArtInfo(@Valid @RequestParam("artId") String artId) {
+        Art art = artService.getArtInfo(new ObjectId(artId));
         return new ResponseEntity<>(art, HttpStatus.OK);
     }
 }
