@@ -1,7 +1,6 @@
 package Fint.FinTribe.payload.request;
 
 import lombok.*;
-import org.bson.types.ObjectId;
 
 import java.time.LocalDate;
 
@@ -9,9 +8,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class UploadRequest {
     @NonNull
-    private ObjectId userId;
-    @NonNull
-    private String filePath;
+    private String userId;
     @NonNull
     private String artName;
     @NonNull
