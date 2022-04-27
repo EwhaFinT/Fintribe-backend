@@ -20,7 +20,7 @@ public class Art {
     private double price;
     private String nftAdd;
     private String paint;
-    private Boolean sold = false;
+    private boolean sold;
     private List<ObjectId> userId;
     private List<Double> ratio;
 }

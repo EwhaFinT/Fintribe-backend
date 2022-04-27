@@ -1,9 +1,6 @@
 package Fint.FinTribe.payload.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NonNull;
-import org.bson.types.ObjectId;
+import lombok.*;
 
 import java.util.List;
 
@@ -11,11 +8,9 @@ import java.util.List;
 @AllArgsConstructor
 public class ParticipateAuctionRequest {
     @NonNull
-    private ObjectId userId;
+    private String userId;
     @NonNull
-    private ObjectId priceId;
-    @NonNull
-    private ObjectId auctionId;
+    private String priceId;
     @NonNull
     private double ratio;
     @NonNull

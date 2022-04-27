@@ -40,8 +40,8 @@ public class UserController {
 
     // 4. 마이페이지
     @GetMapping("/mypage")
-    public ResponseEntity<?> myPage(@Valid @RequestParam("userId") ObjectId userId) {
-        MypageResponse mypageResponse = userService.myPage(userId);
+    public ResponseEntity<?> myPage(@Valid @RequestParam("userId") String userId) {
+        MypageResponse mypageResponse = userService.myPage(new ObjectId(userId));
         return new ResponseEntity<>(mypageResponse, HttpStatus.OK);
     }
 

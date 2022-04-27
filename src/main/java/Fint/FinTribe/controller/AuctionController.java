@@ -1,6 +1,5 @@
 package Fint.FinTribe.controller;
 
-import Fint.FinTribe.domain.auction.Auction;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.AuctionService;
@@ -14,7 +13,6 @@ import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
 
 import javax.validation.Valid;
 import java.time.LocalDate;
-import java.util.List;
 
 @RequestMapping("/v1")
 @RestController
@@ -52,16 +50,9 @@ public class AuctionController {
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
     @GetMapping("/pricelist")
-    public ResponseEntity<?> getPricelist(@Valid @RequestParam("auctionId") ObjectId auctionId) {
-        PricelistResponse pricelistResponse = auctionService.getPricelist(auctionId);
+    public ResponseEntity<?> getPricelist(@Valid @RequestParam("artId") String artId) {
+        PricelistResponse pricelistResponse = auctionService.getPricelist(new ObjectId(artId));
         return new ResponseEntity<>(pricelistResponse, HttpStatus.OK);
-    }
-
-    // 4. 현재 진행중인 경매 반환
-    @GetMapping("/valid-auction")
-    public ResponseEntity<?> getValidAuctions() {
-        List<Auction> auctions = auctionService.getAuctions();
-        return new ResponseEntity<>(new ValidAuctionResponse(auctions), HttpStatus.OK);
     }
 
     // 자정이되면 낙찰된 작품 결제 & 새로운 경매 작품 올리기

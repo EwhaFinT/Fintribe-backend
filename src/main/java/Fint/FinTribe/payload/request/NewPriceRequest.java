@@ -3,7 +3,6 @@ package Fint.FinTribe.payload.request;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
-import org.bson.types.ObjectId;
 
 import java.util.List;
 
@@ -11,9 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 public class NewPriceRequest {
     @NonNull
-    private ObjectId userId;
+    private String userId;
     @NonNull
-    private ObjectId auctionId;
+    private String artId;
     @NonNull
     private double auctionPrice;
     @NonNull

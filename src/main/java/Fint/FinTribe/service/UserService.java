@@ -37,7 +37,7 @@ public class UserService {
         Optional<User> user = findByIdentity(identity);
         if(user.isEmpty()) return new LoginResponse(null, "해당 아이디가 존재하지 않습니다."); // 해당 아이디가 존재하지 않음
         if(!securityConfig.passwordEncoder().matches(password, user.get().getPw())) return new LoginResponse(null, "비밀번호가 일치하지 않습니다."); // 비밀번호가 일치하지 않음
-        return new LoginResponse(user.get().getUserId(), "로그인에 성공했습니다.");
+        return new LoginResponse(user.get().getUserId().toString(), "로그인에 성공했습니다.");
     }
 
     // 3. 지갑 연결
@@ -131,7 +131,8 @@ public class UserService {
 
     // 비밀번호 업데이트
     private Object updatePassword(String tempPassword, User user) {
-        user.setPw(tempPassword);
+        String encodedPassword = securityConfig.passwordEncoder().encode(tempPassword); // 비밀번호 해싱
+        user.setPw(encodedPassword);
         return userRespository.save(user);
     }
 
