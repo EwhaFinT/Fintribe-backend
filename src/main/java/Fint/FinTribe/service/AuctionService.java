@@ -9,10 +9,7 @@ import Fint.FinTribe.domain.resaleDate.ResaleDate;
 import Fint.FinTribe.domain.resaleDate.ResaleDateRepository;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
-import Fint.FinTribe.payload.response.NewPriceResponse;
-import Fint.FinTribe.payload.response.ParticipateAuctionResponse;
-import Fint.FinTribe.payload.response.PricelistResponse;
-import Fint.FinTribe.payload.response.TransactionResponse;
+import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
@@ -50,12 +47,13 @@ public class AuctionService {
     }
     // 1-2. 새로운 경매 가격 제안 (거래 성사)
     public NewPriceResponse newPriceSuccess(NewPriceRequest newPriceRequest) {
+        ObjectId auctionId = auctionRepository.findByArtId(new ObjectId(newPriceRequest.getArtId())).get().getAuctionId();
         // 가격 저장
-        ObjectId newPriceId = (ObjectId) savePrice(newPriceRequest.getAuctionId(), newPriceRequest.getAuctionPrice(), newPriceRequest.getRatio());
-        saveParticipantAuction(newPriceId, newPriceRequest.getUserId(), newPriceRequest.getRatio(), newPriceRequest.getRlp());
+        ObjectId newPriceId = (ObjectId) savePrice(auctionId, newPriceRequest.getAuctionPrice(), newPriceRequest.getRatio());
+        saveParticipantAuction(newPriceId, new ObjectId(newPriceRequest.getUserId()), newPriceRequest.getRatio(), newPriceRequest.getRlp());
         // 낙찰인 경우
         if(newPriceRequest.getRatio() == 1.0) successAuction(newPriceId);
-        return new NewPriceResponse(newPriceId);
+        return new NewPriceResponse(newPriceId.toString());
     }
 
     // 2-1. 기존 경매 참여 (거래 요청)
@@ -70,18 +68,19 @@ public class AuctionService {
     }
     // 2-2. 기존 경매 참여 (거래 성사)
     public ParticipateAuctionResponse participateAuctionSuccess(ParticipateAuctionRequest participateAuctionRequest) {
-        Optional<Price> price = findPriceByPriceId(participateAuctionRequest.getPriceId());
+        Optional<Price> price = findPriceByPriceId(new ObjectId(participateAuctionRequest.getPriceId()));
         // 가격 저장 및 갱신
         double remainderRatio = price.get().getRemainderRatio();
         double newRatio = participateAuctionRequest.getRatio();
-        Optional<ParticipantAuction> participantAuction = findParticipantAuctionByUserIdAndPriceId(participateAuctionRequest.getUserId(), participateAuctionRequest.getPriceId());
+        if(remainderRatio < newRatio) return new ParticipateAuctionResponse("");
+        Optional<ParticipantAuction> participantAuction = findParticipantAuctionByUserIdAndPriceId(new ObjectId(participateAuctionRequest.getUserId()), new ObjectId(participateAuctionRequest.getPriceId()));
 
         if(participantAuction.isPresent()) updateParticipantAuction(newRatio, participantAuction.get());
-        else saveParticipantAuction(price.get().getPriceId(), participateAuctionRequest.getUserId(), participateAuctionRequest.getRatio(), participateAuctionRequest.getRlp());
+        else saveParticipantAuction(price.get().getPriceId(), new ObjectId(participateAuctionRequest.getUserId()), participateAuctionRequest.getRatio(), participateAuctionRequest.getRlp());
         updatePrice(remainderRatio-newRatio, price.get());
         // 낙찰인 경우
         if(participateAuctionRequest.getRatio() == 1.0) successAuction(price.get().getPriceId());
-        return new ParticipateAuctionResponse(price.get().getPriceId());
+        return new ParticipateAuctionResponse(price.get().getPriceId().toString());
     }
 
     // 거래 생성
@@ -89,7 +88,7 @@ public class AuctionService {
         Optional<Auction> auction = auctionRepository.findById(auctionId);
         if(auction.isPresent()) {
             Optional<Art> art = artRepository.findById(auction.get().getArtId());
-            double gas = 0; // ==== 가스비 수정 필요 ====
+            double gas = 0; // TODO: 가스비 수정 필요
             List<String> to = new ArrayList<>(); // 판매자 리스트
             List<Double> value = new ArrayList<>(); // 판매자별 지분 리스트
 
@@ -106,12 +105,13 @@ public class AuctionService {
     }
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
-    public PricelistResponse getPricelist(ObjectId auctionId) {
-        List<Price> pricelist = findPricelist(auctionId);
+    public PricelistResponse getPricelist(ObjectId artId) {
+        ObjectId auctionId = auctionRepository.findByArtId(artId).get().getAuctionId();
+
+        List<PriceResponse> pricelist = findPricelist(auctionId);
         Collections.sort(pricelist, new PriceComparator());
 
         double maxPrice = findMaxPrice(pricelist);
-
         // 1. 현재 상한가가 없는 경우 경매 시작가를 상한가로 반환
         if(pricelist == null || maxPrice == -1) {
             Optional<Auction> auction = findAuctionByAuctionId(auctionId);
@@ -123,12 +123,19 @@ public class AuctionService {
     }
 
     // 3-1. 기존 경매 제안 리스트 받아오기
-    private List<Price> findPricelist(ObjectId auctionId) {
-        return priceRepository.findByAuctionId(auctionId);
+    private List<PriceResponse> findPricelist(ObjectId auctionId) {
+        List<Price> pricelist = priceRepository.findByAuctionId(auctionId);
+        List<PriceResponse> str_pricelist = new ArrayList<>();
+
+        for(int i = 0; i < pricelist.size(); i++) {
+            Price tmp = pricelist.get(i);
+            str_pricelist.add(new PriceResponse(tmp.getPriceId().toString(), tmp.getAuctionId().toString(), tmp.getAuctionPrice(), tmp.getRemainderRatio()));
+        }
+        return str_pricelist;
     }
 
     // 3-2. 현재 상한가 구하기
-    private double findMaxPrice(List<Price> pricelist) {
+    private double findMaxPrice(List<PriceResponse> pricelist) {
         int maxIndex;
         for(maxIndex = 0; maxIndex < pricelist.size(); maxIndex++) {
             if(pricelist.get(maxIndex).getRemainderRatio() == 0)
@@ -293,9 +300,9 @@ public class AuctionService {
     }
 }
 
-class PriceComparator implements Comparator<Price> { // 가격 내림차순 정렬
+class PriceComparator implements Comparator<PriceResponse> { // 가격 내림차순 정렬
     @Override
-    public int compare(Price p1, Price p2) {
+    public int compare(PriceResponse p1, PriceResponse p2) {
         if(p1.getAuctionPrice() > p2.getAuctionPrice()) return -1;
         else if(p1.getAuctionPrice() < p2.getAuctionPrice()) return 1;
         return 0;
