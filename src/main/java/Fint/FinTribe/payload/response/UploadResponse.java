@@ -5,5 +5,5 @@ import lombok.*;
 @Getter
 @AllArgsConstructor
 public class UploadResponse {
-    private String paint;
+    private String artId;
 }

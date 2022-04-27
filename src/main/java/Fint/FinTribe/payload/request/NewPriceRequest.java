@@ -12,7 +12,7 @@ public class NewPriceRequest {
     @NonNull
     private String userId;
     @NonNull
-    private String auctionId;
+    private String artId;
     @NonNull
     private double auctionPrice;
     @NonNull
