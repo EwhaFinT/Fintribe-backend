@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 @Getter
 public class VoteProposalRequest {
     @NotNull
-    ObjectId communityId;
+    String communityId;
     @NotNull
-    ObjectId userId;
+    String userId;
     @NotNull
     String title;
     @NotNull

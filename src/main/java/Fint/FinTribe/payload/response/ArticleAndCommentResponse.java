@@ -12,6 +12,7 @@ import java.util.List;
 @Getter
 public class ArticleAndCommentResponse {
     Article article;
+    String articleId;
     List<Comment> comments;
     List<ReComment> reComments;
 }

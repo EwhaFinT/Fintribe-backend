@@ -9,5 +9,5 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class CommunitiesResponse {
-    List<ObjectId> communityIdList;
+    List<String> communityIdList;
 }

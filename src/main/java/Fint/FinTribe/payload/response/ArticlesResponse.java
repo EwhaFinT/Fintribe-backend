@@ -9,5 +9,5 @@ import java.util.Map;
 @AllArgsConstructor
 @Getter
 public class ArticlesResponse {
-    private Map<ObjectId, String> articles;
+    private Map<String, String> articles;
 }
