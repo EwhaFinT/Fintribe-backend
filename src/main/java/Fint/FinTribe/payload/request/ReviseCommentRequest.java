@@ -8,11 +8,11 @@ import javax.validation.constraints.NotNull;
 @Getter
 public class ReviseCommentRequest {
     @NotNull
-    ObjectId articleId;
+    String articleId;
     @NotNull
     Integer commentId;
     @NotNull
-    ObjectId tagUser;
+    String tagUser;
     @NotNull
     String content;
     @NotNull

@@ -8,11 +8,11 @@ import javax.validation.constraints.NotNull;
 @Getter
 public class CommentRequest {
     @NotNull
-    ObjectId userId;
+    String userId;
     @NotNull
-    ObjectId articleId;
+    String articleId;
     @NotNull
-    ObjectId tagUser;
+    String tagUser;
     @NotNull
     String content;
     @NotNull

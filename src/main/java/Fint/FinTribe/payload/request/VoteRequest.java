@@ -8,9 +8,9 @@ import javax.validation.constraints.NotNull;
 @Getter
 public class VoteRequest {
     @NotNull
-    ObjectId userId;
+    String userId;
     @NotNull
-    ObjectId voteId;
+    String voteId;
     @NotNull
     Boolean choice;
 }
