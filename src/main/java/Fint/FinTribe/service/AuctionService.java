@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import xyz.groundx.caver_ext_kas.CaverExtKAS;
 import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.ProcessRLPRequest;
+import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.FDTransactionResult;
+import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.FDUserProcessRLPRequest;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -41,7 +42,7 @@ public class AuctionService {
     public TransactionResponse newPrice(NewPriceTransactionRequest newPriceTransactionRequest) {
         // 시작 경매가 확인 & 현재 상한가 확인
         PricelistResponse pricelistResponse = getPricelist(newPriceTransactionRequest.getAuctionId());
-        if(pricelistResponse.getPrice() > newPriceTransactionRequest.getAuctionPrice()) return new TransactionResponse(0, null, null);
+        if(pricelistResponse.getPrice() > newPriceTransactionRequest.getAuctionPrice()) return new TransactionResponse(null, null);
         // 거래 진행 (프론트에서 submit == false 상태로 제출)
         return makeTransaction(newPriceTransactionRequest.getAuctionId(), newPriceTransactionRequest.getAuctionPrice(), newPriceTransactionRequest.getRatio());
     }
@@ -62,7 +63,7 @@ public class AuctionService {
         // 가격 검사
         double remainderRatio = price.get().getRemainderRatio();
         double newRatio = participateAuctionTransactionRequest.getRatio();
-        if(remainderRatio < newRatio) return new TransactionResponse(0, null, null);
+        if(remainderRatio < newRatio) return new TransactionResponse(null, null);
         // 거래 진행
         return makeTransaction(price.get().getAuctionId(), price.get().getAuctionPrice(), newRatio);
     }
@@ -88,7 +89,6 @@ public class AuctionService {
         Optional<Auction> auction = auctionRepository.findById(auctionId);
         if(auction.isPresent()) {
             Optional<Art> art = artRepository.findById(auction.get().getArtId());
-            double gas = 0; // TODO: 가스비 수정 필요
             List<String> to = new ArrayList<>(); // 판매자 리스트
             List<Double> value = new ArrayList<>(); // 판매자별 지분 리스트
 
@@ -99,9 +99,9 @@ public class AuctionService {
                 to.add(user.get().getWallet());
                 value.add(price * ratio * ratioList.get(i));
             }
-            return new TransactionResponse(gas, to, value);
+            return new TransactionResponse(to, value);
         }
-        return new TransactionResponse(0, null, null);
+        return new TransactionResponse(null, null);
     }
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
@@ -177,16 +177,31 @@ public class AuctionService {
         return participantAuctionRepository.save(participantAuction);
     }
 
-    // 낙찰 성공시 map에 추가
+    // 낙찰 성공시 이전 경매 내역애서 상한가보다 낮은 경매 삭제 및 map에 추가
     private void successAuction(ObjectId priceId) {
         Optional<Price> price = priceRepository.findById(priceId);
         if(auctionMap.containsKey(price.get().getPriceId())) {
             Price maxPrice = auctionMap.get(priceId);
             if(maxPrice.getAuctionPrice() < price.get().getAuctionPrice()) {
                 auctionMap.replace(priceId, price.get());
+                deleteInvalidAuctions(price.get().getAuctionId(), price.get().getAuctionPrice());
             }
         }
         else auctionMap.put(priceId, price.get());
+    }
+    
+    // 현재 상한가보다 낮은 경매가 삭제
+    private void deleteInvalidAuctions(ObjectId auctionId, double maxPrice) {
+        List<Price> pricelist = priceRepository.findByAuctionId(auctionId);
+
+        List<ObjectId> invalidPriceId = new ArrayList<>();
+        for(int i = 0; i < pricelist.size(); i++) {
+            Price cmp = pricelist.get(i);
+            if(cmp.getAuctionPrice() <= maxPrice) {
+                invalidPriceId.add(cmp.getPriceId());
+            }
+        }
+        for(int i = 0; i < invalidPriceId.size(); i++) { priceRepository.deleteById(invalidPriceId.get(i)); }
     }
 
     // 현재 진행중인 경매 정보 반환
@@ -250,7 +265,6 @@ public class AuctionService {
 
             // 결제 승인
             for(int i = 0; i < rlp.size(); i++) {
-                // klaytn 대납 기능을 통해 거래 submit
                 submitRlpTransaction(rlp.get(i));
             }
         }
@@ -259,10 +273,20 @@ public class AuctionService {
 
     private void submitRlpTransaction(String rlp) throws ApiException {
         CaverExtKAS caver = new CaverExtKAS();
-        ProcessRLPRequest requestRLP = new ProcessRLPRequest();
-        requestRLP.setRlp(rlp);
-        requestRLP.setSubmit(true);
-        caver.kas.wallet.requestRawTransaction(requestRLP);
+        caver.initKASAPI(1001, "KASK489KAHY54740WDAAL1PU", "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs");
+
+        FDUserProcessRLPRequest rlpRequest = new FDUserProcessRLPRequest();
+        rlpRequest.setRlp(rlp);
+        rlpRequest.setFeePayer("0xECaf89B630EE5F86bE75Bd4944DB51E3B3809a16");
+        rlpRequest.setSubmit(true);
+
+        try{
+            FDTransactionResult result = caver.kas.wallet.requestFDRawTransactionPaidByUser(rlpRequest);
+            // TODO : 클라이언트 경매 알림창은 어떻게 구현?
+        }
+        catch(ApiException apiException) {
+            apiException.printStackTrace();
+        }
     }
 
     private void changeSoldState(ObjectId artId, List<ObjectId> userId, List<Double> ratio) { // 판매 상태 변경
@@ -299,12 +323,13 @@ public class AuctionService {
         return auctionDateRepository.save(auctionDate);
     }
 }
-
 class PriceComparator implements Comparator<PriceResponse> { // 가격 내림차순 정렬
     @Override
     public int compare(PriceResponse p1, PriceResponse p2) {
         if(p1.getAuctionPrice() > p2.getAuctionPrice()) return -1;
         else if(p1.getAuctionPrice() < p2.getAuctionPrice()) return 1;
+        else if(p1.getRemainderRatio() < p2.getRemainderRatio()) return -1;
+        else if(p1.getRemainderRatio() > p2.getRemainderRatio()) return 1;
         return 0;
     }
 }
