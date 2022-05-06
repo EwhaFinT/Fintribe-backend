@@ -7,11 +7,16 @@ import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 
 @Service
@@ -28,6 +33,8 @@ public class UserService {
         if(findByIdentity(signupRequest.getIdentity()).isPresent()) { return new SignupResponse(0); }
         // 회원 저장
         Object userId = saveUser(signupRequest.getIdentity(), signupRequest.getPassword(), signupRequest.getName(), signupRequest.getPhone(), signupRequest.getEmail());
+        Optional<User> user = userRespository.findByIdentity(signupRequest.getIdentity());
+        updateWallet(user.get(), makeWallet());
         if(userId != null) return new SignupResponse(1);
         return new SignupResponse(0);
     }
@@ -40,29 +47,21 @@ public class UserService {
         return new LoginResponse(user.get().getUserId().toString(), "로그인에 성공했습니다.");
     }
 
-    // 3. 지갑 연결
-    public RegisterWalletResponse registerWallet(RegisterWalletRequest registerWalletRequest) {
-        Optional<User> user = userRespository.findById(registerWalletRequest.getUserId());
-        if(user.isEmpty()) return new RegisterWalletResponse(0);
-        updateWallet(user.get(), registerWalletRequest.getWallet());
-        return new RegisterWalletResponse(1);
-    }
-
-    // 4. 마이페이지
+    // 3. 마이페이지
     public MypageResponse myPage(ObjectId userId) {
         Optional<User> user = userRespository.findById(userId);
         if(user.isEmpty()) return new MypageResponse(null, null);
         return new MypageResponse(user.get().getWallet(), user.get().getArtId());
     }
 
-    // 5. 아이디 찾기
+    // 4. 아이디 찾기
     public FindIdResponse findId(String name, String phone) {
         Optional<User> user = userRespository.findByNameAndPhone(name, phone);
         if(user.isEmpty()) return new FindIdResponse(null); // 해당 정보와 일치하는 사용자 존재하지 않음
         return new FindIdResponse(user.get().getIdentity());
     }
 
-    // 6. 비밀번호 찾기
+    // 5. 비밀번호 찾기
     public FindPwResponse findPw(String identity, String email) {
         Optional<User> user = userRespository.findByIdentityAndEmail(identity, email);
         if(user.isEmpty()) return new FindPwResponse(false); // 해당 정보와 일치하는 사용자 존재하지 않음
@@ -74,7 +73,7 @@ public class UserService {
         return new FindPwResponse(true);
     }
 
-    // 7. 아이디 중복 검사
+    // 6. 아이디 중복 검사
     public IdCheckResponse idCheck(String identity) {
         if(findByIdentity(identity).isPresent()) return new IdCheckResponse(0);
         return new IdCheckResponse(1);
@@ -134,6 +133,51 @@ public class UserService {
         String encodedPassword = securityConfig.passwordEncoder().encode(tempPassword); // 비밀번호 해싱
         user.setPw(encodedPassword);
         return userRespository.save(user);
+    }
+
+    // 지갑 주소 생성
+    private String makeWallet() {
+        String chainId = "1001";
+        String accessKeyId = "KASK489KAHY54740WDAAL1PU";
+        String secretAccessKey = "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs";
+        String auth = accessKeyId + ":" + secretAccessKey;
+
+        HttpURLConnection conn = null;
+        JSONObject responseJson = null;
+        String newWallet = null;
+        Base64.Encoder encoder = Base64.getEncoder();
+        String encodedAuth = "Basic " + encoder.encodeToString(auth.getBytes());
+
+        try{
+            URL url = new URL("https://wallet-api.klaytnapi.com/v2/account");
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type","applicaiton/json");
+            conn.setRequestProperty("Authorization",encodedAuth);
+            conn.setRequestProperty("x-chain-id", chainId);
+            conn.setDoOutput(true);
+
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
+            bw.flush();
+            bw.close();
+
+            int responseCode = conn.getResponseCode();
+            if(responseCode == 200) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line = "";
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
+                responseJson = new JSONObject(sb.toString());
+                newWallet = responseJson.getString("address");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return newWallet;
     }
 
     // 지갑 업데이트
