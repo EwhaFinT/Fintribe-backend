@@ -2,12 +2,11 @@ package Fint.FinTribe.payload.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.bson.types.ObjectId;
 
-import java.util.Map;
+import java.util.List;
 
 @AllArgsConstructor
 @Getter
 public class ArticlesResponse {
-    private Map<String, String> articles;
+    private List<ArticlesResTmp> articles;
 }
