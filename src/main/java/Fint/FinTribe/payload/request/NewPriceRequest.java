@@ -1,10 +1,6 @@
 package Fint.FinTribe.payload.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NonNull;
-
-import java.util.List;
+import lombok.*;
 
 @Getter
 @AllArgsConstructor
@@ -17,6 +13,4 @@ public class NewPriceRequest {
     private double auctionPrice;
     @NonNull
     private double ratio;
-    @NonNull
-    private List<String> rlp;
 }
