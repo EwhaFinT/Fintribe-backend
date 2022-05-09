@@ -95,8 +95,8 @@ public class CommunityController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<?> getVote(@RequestParam @Valid String voteId){
-        VoteCheckResponse voteResponse = communityService.getVoteInformation(voteId);
+    public ResponseEntity<?> getVote(@RequestParam @Valid String voteId, @RequestParam @Valid String userId){
+        VoteCheckResponse voteResponse = communityService.getVoteInformation(voteId, userId);
         return new ResponseEntity<>(voteResponse, HttpStatus.OK);
     }
 }
