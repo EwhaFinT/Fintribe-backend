@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
@@ -36,10 +37,12 @@ public class CommunityService {
     }
 
     //Community entity 생성
-    private Community communityToEntity(ObjectId artId){
+    private Community communityToEntity(ObjectId artId, List<ObjectId> userIdList, List<Double> ratioList){
         return Community.builder()
                 .artId(artId)
                 .isDeleted(false)
+                .userIdList(userIdList)
+                .ratioList(ratioList)
                 .build();
     }
 
@@ -147,9 +150,9 @@ public class CommunityService {
     //게시글 목록 받기
     public ArticlesResponse getArticleList(String communityId){
         List<Article> articleList = findArticlesByCommunityId(new ObjectId(communityId));
-        Map<String, String> articles = new HashMap<>();
+        List<ArticlesResTmp> articles = new ArrayList<>();
         for(Article article : articleList){
-            articles.put(article.getArticleId().toString(), article.getTitle());
+            articles.add(new ArticlesResTmp(article.getArticleId().toString(), article.getTitle(), article.getCreatedAt()));
         }
         return new ArticlesResponse(articles);
     }
@@ -278,7 +281,7 @@ public class CommunityService {
 
     //Vote 참여
     public VoteResponse participateVote(VoteRequest voteRequest){
-        Double ratio = 10.0; //-- artId와 userId로 지분 조회하는 함수 호출
+        Double ratio = getRatio(new ObjectId(voteRequest.getVoteId()), new ObjectId(voteRequest.getUserId()));
 
         Optional<ParticipantVote> participant = participantVoteRepository.findByVoteIdAndUserId(new ObjectId(voteRequest.getVoteId()), new ObjectId(voteRequest.getUserId()));
         if(!participant.isPresent()){
@@ -305,19 +308,34 @@ public class CommunityService {
     }
 
     //Vote 조회
-    public VoteCheckResponse getVoteInformation(String voteId){
+    public VoteCheckResponse getVoteInformation(String voteId, String userId){
         Optional<Vote> voteOp = voteRepository.findById(new ObjectId(voteId));
+        Double ratio = getRatio(new ObjectId(voteId), new ObjectId(userId));
         if(!voteOp.isPresent()){
             return new VoteCheckResponse("No such vote");
         }
         Vote vote = voteOp.get();
         return new VoteCheckResponse(voteId, vote.getUserId().toString(), vote.getIdentity(),
                 vote.getTitle(), vote.getResalePrice(), vote.getStartTime(), vote.getEndTime(),
-                vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement());
+                vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement(), ratio);
     }
 
     //Community 생성
-    public void createCommunity(ObjectId artId){
-        communityRepository.save(communityToEntity(artId));
+    public void createCommunity(ObjectId artId, List<ObjectId> userIdList, List<Double> ratioList){
+        communityRepository.save(communityToEntity(artId, userIdList, ratioList));
+    }
+
+    //userId로 지분 조회
+    private Double getRatio(ObjectId voteId, ObjectId userId){
+        Optional<Vote> voteOptional = voteRepository.findById(voteId);
+        AtomicReference<Double> ratio = new AtomicReference<>(0.0);
+        if(voteOptional.isPresent()){
+            ObjectId communityId = voteOptional.get().getCommunityId();
+            communityRepository.findById(communityId).ifPresent(community -> {
+                    int userIndex = community.getUserIdList().indexOf(userId);
+                    ratio.set(community.getRatioList().get(userIndex));
+            });
+        }
+        return ratio.get();
     }
 }
