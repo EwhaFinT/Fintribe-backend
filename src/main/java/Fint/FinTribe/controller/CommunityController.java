@@ -2,7 +2,7 @@ package Fint.FinTribe.controller;
 
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
-import Fint.FinTribe.service.community.CommunityService;
+import Fint.FinTribe.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
@@ -17,14 +17,33 @@ import javax.validation.Valid;
 public class CommunityController {
     private final CommunityService communityService;
 
+    //TODO; communtity 관련 api 수정 및 추가 필요
     //커뮤니티
+    @GetMapping("/communities")
+    public ResponseEntity<?> getCommunities(@RequestParam @Valid String userId){
+        CommunitiesResponse communitiesResponse = communityService.getCommunities(userId);
+        return new ResponseEntity<>(communitiesResponse, HttpStatus.OK);
+    }
+
     @GetMapping("/community")
-    public ResponseEntity<?> getCommunityInformation(@RequestParam @Valid ObjectId artId, @RequestParam @Valid ObjectId userId){
-        CommunityResponse communityResponse = communityService.getCommunity(artId, userId);
+    public ResponseEntity<?> getCommunityInformation(@RequestParam @Valid String communityId){
+        CommunityResponse communityResponse = communityService.getCommunity(communityId);
         return new ResponseEntity<>(communityResponse, HttpStatus.OK);
     }
 
     //게시글
+    @GetMapping("/articles")
+    public ResponseEntity<?> getArticles(@RequestParam @Valid String communityId){
+        ArticlesResponse articlesResponse = communityService.getArticleList(communityId);
+        return new ResponseEntity<>(articlesResponse, HttpStatus.OK);
+    }
+
+    @GetMapping("/article")
+    public ResponseEntity<?> getArticle(@RequestParam @Valid String articleId){
+        ArticleAndCommentResponse articleResponse = communityService.getArticle(articleId);
+        return new ResponseEntity<>(articleResponse, HttpStatus.OK);
+    }
+
     @PostMapping("/article")
     public ResponseEntity<?> postArticle(@RequestBody @Valid ArticleRequest articleRequest){
         ArticleResponse articleResponse = communityService.createArticle(articleRequest);
@@ -38,7 +57,7 @@ public class CommunityController {
     }
 
     @DeleteMapping("/delete-article")
-    public ResponseEntity<?> deleteArticle(@RequestParam @Valid ObjectId articleId){
+    public ResponseEntity<?> deleteArticle(@RequestParam @Valid String articleId){
         ArticleResponse articleResponse =  communityService.deleteArticle(articleId);
         return new ResponseEntity<>(articleResponse, HttpStatus.OK);
     }
@@ -57,7 +76,7 @@ public class CommunityController {
     }
 
     @DeleteMapping("/delete-comment")
-    public ResponseEntity<?> deleteComment(@RequestParam @Valid ObjectId articleId, @RequestParam @Valid Integer commentId, @RequestParam @Valid Integer tagCommentId){
+    public ResponseEntity<?> deleteComment(@RequestParam @Valid String articleId, @RequestParam @Valid Integer commentId, @RequestParam @Valid Integer tagCommentId){
         CommentResponse commentResponse = communityService.deleteComment(articleId, commentId, tagCommentId);
         return new ResponseEntity<>(commentResponse, HttpStatus.OK);
     }
@@ -76,8 +95,8 @@ public class CommunityController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<?> getVote(@RequestParam @Valid ObjectId voteId){
-        VoteCheckResponse voteResponse = communityService.getVoteInformation(voteId);
+    public ResponseEntity<?> getVote(@RequestParam @Valid String voteId, @RequestParam @Valid String userId){
+        VoteCheckResponse voteResponse = communityService.getVoteInformation(voteId, userId);
         return new ResponseEntity<>(voteResponse, HttpStatus.OK);
     }
 }

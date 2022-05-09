@@ -7,7 +7,7 @@ import javax.validation.constraints.NotNull;
 @Getter
 public class ArticleRequest {
     @NotNull
-    ObjectId userId;
+    String userId;
     @NotNull
     String title;
     @NotNull

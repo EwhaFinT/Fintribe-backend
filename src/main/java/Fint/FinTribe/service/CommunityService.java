@@ -1,17 +1,17 @@
-package Fint.FinTribe.service.community;
+package Fint.FinTribe.service;
 
+import Fint.FinTribe.domain.art.Art;
 import Fint.FinTribe.domain.community.*;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
-import Fint.FinTribe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
@@ -23,22 +23,26 @@ public class CommunityService {
     private final VoteRepository voteRepository;
     private final ParticipantVoteRepository participantVoteRepository;
     private final UserService userService;
-
-    //DB community 조회
-    private Community findCommunityByArtId(ObjectId artId){
-        return communityRepository.findByArtIdAndIsDeleted(artId, false).get();
-    }
+    private final ArtService artService;
 
     //DB Article 조회
     private List<Article> findArticlesByCommunityId(ObjectId communityId){
         return articleRepository.findByCommunityIdAndIsDeleted(communityId, false);
     }
 
+    //DB Article 개별 조회
+    //TODO; error ctrl
+    private Article findArticleById(ObjectId articleId){
+        return articleRepository.findByArticleIdAndIsDeleted(articleId, false).orElseThrow();
+    }
+
     //Community entity 생성
-    private Community communityToEntity(ObjectId artId){
+    private Community communityToEntity(ObjectId artId, List<ObjectId> userIdList, List<Double> ratioList){
         return Community.builder()
                 .artId(artId)
                 .isDeleted(false)
+                .userIdList(userIdList)
+                .ratioList(ratioList)
                 .build();
     }
 
@@ -47,7 +51,7 @@ public class CommunityService {
         LocalDateTime now = LocalDateTime.now();
         return Article.builder()
                 .communityId(articleRequest.getCommunityId())
-                .userId(articleRequest.getUserId())
+                .userId(new ObjectId(articleRequest.getUserId()))
                 .identity(articleRequest.getIdentity())
                 .title(articleRequest.getTitle())
                 .content(articleRequest.getContent())
@@ -60,12 +64,14 @@ public class CommunityService {
     //Comment entity 생성
     private Comment commentRequestToEntity(CommentRequest commentRequest, Integer commentId){
         LocalDateTime now = LocalDateTime.now();
-        User user = userService.findByUserId(commentRequest.getUserId()).get();
+        ObjectId userId = new ObjectId(commentRequest.getUserId());
+        ObjectId articleId = new ObjectId(commentRequest.getArticleId());
+        User user = userService.findByUserId(userId).get();
         return Comment.builder()
                 .commentId(commentId)
-                .articleId(commentRequest.getArticleId())
+                .articleId(articleId)
                 .content(commentRequest.getContent())
-                .userId(commentRequest.getUserId())
+                .userId(userId)
                 .identity(user.getIdentity())
                 .createdAt(now)
                 .updatedAt(now)
@@ -76,18 +82,18 @@ public class CommunityService {
     //ReComment entity 생성
     private ReComment reCommentRequestToEntity(CommentRequest commentRequest, Integer commentId){
         LocalDateTime now = LocalDateTime.now();
-        User user = userService.findByUserId(commentRequest.getUserId()).get();
-        User tagUser = userService.findByUserId(commentRequest.getTagUser()).get();
+        User user = userService.findByUserId(new ObjectId(commentRequest.getUserId())).get();
+        User tagUser = userService.findByUserId(new ObjectId(commentRequest.getUserId())).get();
         return ReComment.builder()
                 .reCommentId(commentId)
                 .tagCommentId(commentRequest.getTagCommentId())
-                .articleId(commentRequest.getArticleId())
+                .articleId(new ObjectId(commentRequest.getArticleId()))
                 .content(commentRequest.getContent())
-                .userId(commentRequest.getUserId())
+                .userId(new ObjectId(commentRequest.getUserId()))
                 .identity(user.getIdentity())
                 .createdAt(now)
                 .updatedAt(now)
-                .tagUser(commentRequest.getTagUser())
+                .tagUser(new ObjectId(commentRequest.getTagUser()))
                 .tagUserIdentity(tagUser.getIdentity())
                 .isDeleted(false)
                 .build();
@@ -96,10 +102,10 @@ public class CommunityService {
     //Vote entity 생성
     private Vote voteProposalRequestToEntity(VoteProposalRequest voteRequest){
         LocalDateTime now = LocalDateTime.now();
-        User user = userService.findByUserId(voteRequest.getUserId()).get();
+        User user = userService.findByUserId(new ObjectId(voteRequest.getUserId())).get();
         return Vote.builder()
-                .communityId(voteRequest.getCommunityId())
-                .userId(voteRequest.getUserId())
+                .communityId(new ObjectId(voteRequest.getCommunityId()))
+                .userId(new ObjectId(voteRequest.getUserId()))
                 .identity(user.getIdentity())
                 .title(voteRequest.getTitle())
                 .resalePrice(voteRequest.getResalePrice())
@@ -114,14 +120,48 @@ public class CommunityService {
     //ParticipantVote 객체 생성
     private ParticipantVote voteRequestToEntity(VoteRequest voteRequest, Double ratio){
         LocalDateTime now = LocalDateTime.now();
-        return new ParticipantVote(voteRequest.getVoteId(), voteRequest.getUserId(), voteRequest.getChoice(), now, ratio);
+        return new ParticipantVote(new ObjectId(voteRequest.getVoteId()), new ObjectId(voteRequest.getUserId()), voteRequest.getChoice(), now, ratio);
     }
 
     //Community 조회
-    public CommunityResponse getCommunity(ObjectId artId, ObjectId userId){
-        Community community = findCommunityByArtId(artId);
-        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
-        return new CommunityResponse(user.getIdentity(), community.getCommunityId().toString(), community.getIsDeleted(), findArticlesByCommunityId(community.getCommunityId()));
+//    public CommunityResponse getCommunity(ObjectId artId, ObjectId userId){
+//        Community community = findCommunityByArtId(artId);
+//        User user = userService.findByUserId(userId).get(); // == User find 함수 호출
+//        return new CommunityResponse(user.getIdentity(), community.getCommunityId().toString(), community.getIsDeleted(), findArticlesByCommunityId(community.getCommunityId()));
+//    }
+
+    //유저가 방문할 수 있는 커뮤니티 조회
+    public CommunitiesResponse getCommunities(String userId){
+        List<ObjectId> artIdList = userService.getArtId(new ObjectId(userId));
+        List<String> responseList = new ArrayList<>();
+        for(ObjectId artId : artIdList){
+            responseList.add(artId.toString());
+        }
+        return new CommunitiesResponse(responseList);
+    }
+
+    //커뮤니티 내 미술품 정보 받기
+    public CommunityResponse getCommunity(String communityId){
+        Community community = communityRepository.findById(new ObjectId(communityId)).orElseThrow();
+        Art art = artService.findArtById(community.getArtId());
+        return new CommunityResponse(art.getPainter(), art.getArtName(), art.getDetail(), art.getPrice(), art.getNftAdd(), art.getPaint());
+    }
+
+    //게시글 목록 받기
+    public ArticlesResponse getArticleList(String communityId){
+        List<Article> articleList = findArticlesByCommunityId(new ObjectId(communityId));
+        List<ArticlesResTmp> articles = new ArrayList<>();
+        for(Article article : articleList){
+            articles.add(new ArticlesResTmp(article.getArticleId().toString(), article.getTitle(), article.getCreatedAt()));
+        }
+        return new ArticlesResponse(articles);
+    }
+
+    //댓글, 대댓글도 같이 들고 오기
+    public ArticleAndCommentResponse getArticle(String articleId){
+        ObjectId id = new ObjectId(articleId);
+        Article article = findArticleById(id);
+        return new ArticleAndCommentResponse(article, article.getArticleId().toString(), commentRepository.findByArticleId(id), reCommentRepository.findByArticleId(id));
     }
 
     //Article 생성
@@ -134,7 +174,7 @@ public class CommunityService {
     public ArticleResponse updateArticle(ReviseArticleRequest articleRequest){
         LocalDateTime now = LocalDateTime.now();
 
-        Optional<Article> articleOp = articleRepository.findById(articleRequest.getArticleId());
+        Optional<Article> articleOp = articleRepository.findById(new ObjectId(articleRequest.getArticleId()));
         if(!articleOp.isPresent()){
             return new ArticleResponse("No such article");
         }
@@ -147,8 +187,8 @@ public class CommunityService {
     }
 
     //Article 삭제
-    public ArticleResponse deleteArticle(ObjectId articleId){
-        Optional<Article> articleOp = articleRepository.findById(articleId);
+    public ArticleResponse deleteArticle(String articleId){
+        Optional<Article> articleOp = articleRepository.findById(new ObjectId(articleId));
         if(!articleOp.isPresent()){
             return new ArticleResponse("No such article");
         }
@@ -162,7 +202,7 @@ public class CommunityService {
     public CommentResponse createComment(CommentRequest commentRequest){
         Integer lastComment;
         if(commentRequest.getTagCommentId() == -1){
-            List<Comment> commentList = commentRepository.findByArticleId(commentRequest.getArticleId());
+            List<Comment> commentList = commentRepository.findByArticleId(new ObjectId(commentRequest.getArticleId()));
             if(commentList.isEmpty())
                 lastComment = -1;
             else
@@ -173,7 +213,7 @@ public class CommunityService {
             if(commentRepository.findById(commentRequest.getTagCommentId()).get().getIsDeleted()){
                 return new CommentResponse("deleted comment");
             }
-            List<ReComment> commentList = reCommentRepository.findByTagCommentId(commentRequest.getTagCommentId());
+            List<ReComment> commentList = reCommentRepository.findByArticleIdAndTagCommentId(new ObjectId(commentRequest.getArticleId()), commentRequest.getTagCommentId());
             if(commentList.isEmpty())
                 lastComment = -1;
             else
@@ -187,7 +227,7 @@ public class CommunityService {
     public CommentResponse updateComment(ReviseCommentRequest commentRequest){
         LocalDateTime now = LocalDateTime.now();
         if(commentRequest.getTagCommentId() == -1){
-            Optional<Comment> commentOp = commentRepository.findByIdAndArticleId(commentRequest.getCommentId(), commentRequest.getArticleId());
+            Optional<Comment> commentOp = commentRepository.findByIdAndArticleId(commentRequest.getCommentId(), new ObjectId(commentRequest.getArticleId()));
             if(!commentOp.isPresent()){
                 return new CommentResponse("No Such Comment");
             }
@@ -197,7 +237,7 @@ public class CommunityService {
             commentRepository.save(comment);
         }
         else{
-            Optional<ReComment> commentOp = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentRequest.getCommentId(), commentRequest.getTagCommentId(), commentRequest.getArticleId());
+            Optional<ReComment> commentOp = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentRequest.getCommentId(), commentRequest.getTagCommentId(), new ObjectId(commentRequest.getArticleId()));
             if(!commentOp.isPresent()){
                 return new CommentResponse("No Such Comment");
             }
@@ -210,9 +250,10 @@ public class CommunityService {
     }
 
     //Comment 삭제
-    public CommentResponse deleteComment(ObjectId articleId, Integer commentId, Integer tagCommentId){
+    public CommentResponse deleteComment(String articleId, Integer commentId, Integer tagCommentId){
+        ObjectId id = new ObjectId(articleId);
         if(tagCommentId == -1){
-            Optional<Comment> commentOp = commentRepository.findByIdAndArticleId(commentId, articleId);
+            Optional<Comment> commentOp = commentRepository.findByIdAndArticleId(commentId, id);
             if(!commentOp.isPresent()){
                 return new CommentResponse("No Such Comment");
             }
@@ -221,7 +262,7 @@ public class CommunityService {
             commentRepository.save(comment);
         }
         else{
-            Optional<ReComment> commentOp = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentId, tagCommentId, articleId);
+            Optional<ReComment> commentOp = reCommentRepository.findByIdAndTagCommentIdAndArticleId(commentId, tagCommentId, id);
             if(!commentOp.isPresent()){
                 return new CommentResponse("No Such Comment");
             }
@@ -240,12 +281,12 @@ public class CommunityService {
 
     //Vote 참여
     public VoteResponse participateVote(VoteRequest voteRequest){
-        Double ratio = 10.0; //-- artId와 userId로 지분 조회하는 함수 호출
+        Double ratio = getRatio(new ObjectId(voteRequest.getVoteId()), new ObjectId(voteRequest.getUserId()));
 
-        Optional<ParticipantVote> participant = participantVoteRepository.findByVoteIdAndUserId(voteRequest.getVoteId(), voteRequest.getUserId());
+        Optional<ParticipantVote> participant = participantVoteRepository.findByVoteIdAndUserId(new ObjectId(voteRequest.getVoteId()), new ObjectId(voteRequest.getUserId()));
         if(!participant.isPresent()){
             ParticipantVote newParticipant = voteRequestToEntity(voteRequest, ratio);
-            Vote vote = voteRepository.findById(voteRequest.getVoteId()).get();
+            Vote vote = voteRepository.findById(new ObjectId(voteRequest.getVoteId())).get();
             if(voteRequest.getChoice()){
                 vote.setAgreement(vote.getAgreement() + ratio);
                 if(vote.getAgreement() > 0.5){
@@ -267,19 +308,34 @@ public class CommunityService {
     }
 
     //Vote 조회
-    public VoteCheckResponse getVoteInformation(ObjectId voteId){
-        Optional<Vote> voteOp = voteRepository.findById(voteId);
+    public VoteCheckResponse getVoteInformation(String voteId, String userId){
+        Optional<Vote> voteOp = voteRepository.findById(new ObjectId(voteId));
+        Double ratio = getRatio(new ObjectId(voteId), new ObjectId(userId));
         if(!voteOp.isPresent()){
             return new VoteCheckResponse("No such vote");
         }
         Vote vote = voteOp.get();
-        return new VoteCheckResponse(voteId.toString(), vote.getUserId().toString(), vote.getIdentity(),
+        return new VoteCheckResponse(voteId, vote.getUserId().toString(), vote.getIdentity(),
                 vote.getTitle(), vote.getResalePrice(), vote.getStartTime(), vote.getEndTime(),
-                vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement());
+                vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement(), ratio);
     }
 
     //Community 생성
-    public void createCommunity(ObjectId artId){
-        communityRepository.save(communityToEntity(artId));
+    public void createCommunity(ObjectId artId, List<ObjectId> userIdList, List<Double> ratioList){
+        communityRepository.save(communityToEntity(artId, userIdList, ratioList));
+    }
+
+    //userId로 지분 조회
+    private Double getRatio(ObjectId voteId, ObjectId userId){
+        Optional<Vote> voteOptional = voteRepository.findById(voteId);
+        AtomicReference<Double> ratio = new AtomicReference<>(0.0);
+        if(voteOptional.isPresent()){
+            ObjectId communityId = voteOptional.get().getCommunityId();
+            communityRepository.findById(communityId).ifPresent(community -> {
+                    int userIndex = community.getUserIdList().indexOf(userId);
+                    ratio.set(community.getRatioList().get(userIndex));
+            });
+        }
+        return ratio.get();
     }
 }

@@ -8,9 +8,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReCommentRepository extends MongoRepository<ReComment, Integer> {
-    @Query("{'tagCommentId': ?0}")
-    List<ReComment> findByTagCommentId(Integer commentId);
+    @Query("{$and:[{'articleId': ?0}, {'tagCommentId': ?1}]}")
+    List<ReComment> findByArticleIdAndTagCommentId(ObjectId articleId, Integer commentId);
 
     @Query("{$and:[{'_id': ?0}, {'tagCommentId': ?1}, {'articleId': ?2}]}")
     Optional<ReComment> findByIdAndTagCommentIdAndArticleId(Integer commentId, Integer tagCommentId, ObjectId articleId);
+
+    @Query("{'articleId': ?0}")
+    List<ReComment> findByArticleId(ObjectId articleId);
 }
