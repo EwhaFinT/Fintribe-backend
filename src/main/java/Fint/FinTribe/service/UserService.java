@@ -96,6 +96,12 @@ public class UserService {
         }
     }
 
+    public void sendAuctionAlarm(String userName, String artName, String email) {
+        String emailText = userName + "님 참가하신 경매 작품 <" + artName + ">을 성공적으로 낙찰했습니다.";
+        SimpleMailMessage message = makeEmailForm(email, "[FinTribe: 낙찰 알림]", emailText);
+        javaMailSender.send(message);
+    }
+
     private Object saveUser(String identity, String password, String name, String phone, String email) { // 회원 저장
         String encodedPassword = securityConfig.passwordEncoder().encode(password); // 비밀번호 해싱
         User user = User.builder()
