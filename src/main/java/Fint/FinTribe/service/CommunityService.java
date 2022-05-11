@@ -131,13 +131,18 @@ public class CommunityService {
 //    }
 
     //유저가 방문할 수 있는 커뮤니티 조회
-    public CommunitiesResponse getCommunities(String userId){
+    public List<CommunitiesResponse> getCommunities(String userId){
         List<ObjectId> artIdList = userService.getArtId(new ObjectId(userId));
-        List<String> responseList = new ArrayList<>();
+        List<CommunitiesResponse> responseList = new ArrayList<>();
         for(ObjectId artId : artIdList){
-            responseList.add(artId.toString());
+            Art art = artService.findArtById(artId);
+            communityRepository.findByArtIdAndIsDeleted(artId, false).ifPresent(community -> {
+                CommunitiesResponse response = new CommunitiesResponse(community.getCommunityId().toString(), art.getArtName());
+                responseList.add(response);
+            });
+
         }
-        return new CommunitiesResponse(responseList);
+        return responseList;
     }
 
     //커뮤니티 내 미술품 정보 받기
