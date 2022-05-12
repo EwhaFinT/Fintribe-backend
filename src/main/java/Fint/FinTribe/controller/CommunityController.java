@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @RequestMapping("/v1")
 @RestController
@@ -21,7 +22,7 @@ public class CommunityController {
     //커뮤니티
     @GetMapping("/communities")
     public ResponseEntity<?> getCommunities(@RequestParam @Valid String userId){
-        CommunitiesResponse communitiesResponse = communityService.getCommunities(userId);
+        List<CommunitiesResponse> communitiesResponse = communityService.getCommunities(userId);
         return new ResponseEntity<>(communitiesResponse, HttpStatus.OK);
     }
 
