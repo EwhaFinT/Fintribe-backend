@@ -16,6 +16,6 @@ public interface ParticipantAuctionRepository extends MongoRepository<Participan
     @Query("{'auctionId': ?0}")
     List<ParticipantAuction> findByPriceId(ObjectId priceId);
 
-    @Query("{'priceId: ?0'}")
-    Long deleteByPriceId(ObjectId priceId);
+    @Query(value = "{'priceId': ?0}", delete = true)
+    void deleteByPriceId(ObjectId priceId);
 }
