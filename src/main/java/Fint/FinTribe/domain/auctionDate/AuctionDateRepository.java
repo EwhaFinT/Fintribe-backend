@@ -12,7 +12,4 @@ import java.util.Optional;
 public interface AuctionDateRepository extends MongoRepository<AuctionDate, ObjectId> {
     @Query("{'auctionDate': ?0}")
     Optional<AuctionDate> findByAuctionDate(LocalDate auctionDate);
-
-    @Query("{'auctionDate': ?0}")
-    Long countByAuctionDate(LocalDate auctionDate);
 }

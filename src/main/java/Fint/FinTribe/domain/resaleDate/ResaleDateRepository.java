@@ -12,7 +12,4 @@ import java.util.Optional;
 public interface ResaleDateRepository extends MongoRepository<ResaleDate, ObjectId> {
     @Query("{'resaleDate': ?0}")
     Optional<ResaleDate> findByResaleDate(LocalDate resaleDate);
-
-    @Query("{'resaleDate': ?0}")
-    Long countByResaleDate(LocalDate resaleDate);
 }
