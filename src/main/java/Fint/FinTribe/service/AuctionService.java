@@ -210,7 +210,7 @@ public class AuctionService {
         List<ObjectId> invalidPriceId = new ArrayList<>();
         for(int i = 0; i < pricelist.size(); i++) { // 현재 상한가보다 낮은 가격 삭제
             Price cmp = pricelist.get(i);
-            if((cmp.getAuctionPrice() < maxPrice) || (cmp.getAuctionPrice() == maxPrice && cmp.getRemainderRatio() > 0.0))
+            if((cmp.getAuctionPrice() < maxPrice) || (cmp.getAuctionPrice() == maxPrice && cmp.getRemainderRatio() > 0))
                 invalidPriceId.add(cmp.getPriceId());
         }
         for(int i = 0; i < invalidPriceId.size(); i++) { // 현재 상한가보다 낮은 가격 삭제
@@ -320,10 +320,16 @@ public class AuctionService {
         return artRepository.save(art);
     }
 
-    public Long countArtwork(int type, LocalDate date) {
-        if(type == 0) return auctionDateRepository.countByAuctionDate(date);    // 신규 경매
-        else if(type == 1) return resaleDateRepository.countByResaleDate(date); // 재경매
-        return 0L;
+    public int countArtwork(int type, LocalDate date) {
+        if(type == 0) {
+            AuctionDate auctionDate = auctionDateRepository.findByAuctionDate(date).get();
+            return auctionDate.getArtId().size(); // 신규 경매
+        }
+        else if(type == 1) {
+            ResaleDate resaleDate = resaleDateRepository.findByResaleDate(date).get();
+            return resaleDate.getArtId().size(); // 재경매
+        }
+        return 0;
     }
 
     public void setAuctionDate(ObjectId artId, LocalDate date) { // (작품 업로드)
