@@ -1,6 +1,5 @@
 package Fint.FinTribe.domain.resaleDate;
 
-import Fint.FinTribe.domain.auctionDate.AuctionDate;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;

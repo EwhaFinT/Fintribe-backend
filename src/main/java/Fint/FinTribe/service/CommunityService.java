@@ -1,6 +1,7 @@
 package Fint.FinTribe.service;
 
 import Fint.FinTribe.domain.art.Art;
+import Fint.FinTribe.domain.art.ArtRepository;
 import Fint.FinTribe.domain.community.*;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
@@ -22,8 +23,8 @@ public class CommunityService {
     private final ReCommentRepository reCommentRepository;
     private final VoteRepository voteRepository;
     private final ParticipantVoteRepository participantVoteRepository;
+    private final ArtRepository artRepository;
     private final UserService userService;
-    private final ArtService artService;
 
     //DB Article 조회
     private List<Article> findArticlesByCommunityId(ObjectId communityId){
@@ -135,7 +136,7 @@ public class CommunityService {
         List<ObjectId> artIdList = userService.getArtId(new ObjectId(userId));
         List<CommunitiesResponse> responseList = new ArrayList<>();
         for(ObjectId artId : artIdList){
-            Art art = artService.findArtById(artId);
+            Art art = artRepository.findById(artId).get();
             communityRepository.findByArtIdAndIsDeleted(artId, false).ifPresent(community -> {
                 CommunitiesResponse response = new CommunitiesResponse(community.getCommunityId().toString(), art.getArtName());
                 responseList.add(response);
@@ -148,7 +149,7 @@ public class CommunityService {
     //커뮤니티 내 미술품 정보 받기
     public CommunityResponse getCommunity(String communityId){
         Community community = communityRepository.findById(new ObjectId(communityId)).orElseThrow();
-        Art art = artService.findArtById(community.getArtId());
+        Art art = artRepository.findById(community.getArtId()).get();
         return new CommunityResponse(art.getPainter(), art.getArtName(), art.getDetail(), art.getPrice(), art.getNftAdd(), art.getPaint());
     }
 

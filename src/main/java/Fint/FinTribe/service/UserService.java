@@ -7,22 +7,23 @@ import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import xyz.groundx.caver_ext_kas.CaverExtKAS;
+import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
+import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.Account;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
+    private final String chainId = "1001";
+    private final String accessKeyId = "KASK489KAHY54740WDAAL1PU";
+    private final String secretAccessKey = "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs";
     private final UserRespository userRespository;
     private final SecurityConfig securityConfig;
     private final JavaMailSender javaMailSender;
@@ -95,6 +96,12 @@ public class UserService {
         }
     }
 
+    public void sendAuctionAlarm(String userName, String artName, String email) {
+        String emailText = userName + "님 참가하신 경매 작품 <" + artName + ">을 성공적으로 낙찰했습니다.";
+        SimpleMailMessage message = makeEmailForm(email, "[FinTribe: 낙찰 알림]", emailText);
+        javaMailSender.send(message);
+    }
+
     private Object saveUser(String identity, String password, String name, String phone, String email) { // 회원 저장
         String encodedPassword = securityConfig.passwordEncoder().encode(password); // 비밀번호 해싱
         User user = User.builder()
@@ -137,44 +144,14 @@ public class UserService {
 
     // 지갑 주소 생성
     private String makeWallet() {
-        String chainId = "1001";
-        String accessKeyId = "KASK489KAHY54740WDAAL1PU";
-        String secretAccessKey = "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs";
-        String auth = accessKeyId + ":" + secretAccessKey;
+        CaverExtKAS caver = new CaverExtKAS();
+        caver.initKASAPI(chainId, accessKeyId, secretAccessKey);
 
-        HttpURLConnection conn = null;
-        JSONObject responseJson = null;
         String newWallet = null;
-        Base64.Encoder encoder = Base64.getEncoder();
-        String encodedAuth = "Basic " + encoder.encodeToString(auth.getBytes());
-
         try{
-            URL url = new URL("https://wallet-api.klaytnapi.com/v2/account");
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type","applicaiton/json");
-            conn.setRequestProperty("Authorization",encodedAuth);
-            conn.setRequestProperty("x-chain-id", chainId);
-            conn.setDoOutput(true);
-
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
-            bw.flush();
-            bw.close();
-
-            int responseCode = conn.getResponseCode();
-            if(responseCode == 200) {
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line = "";
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                }
-                responseJson = new JSONObject(sb.toString());
-                newWallet = responseJson.getString("address");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
+            Account account = caver.kas.wallet.createAccount();
+            newWallet = account.getAddress();
+        } catch (ApiException e) {
             e.printStackTrace();
         }
         return newWallet;

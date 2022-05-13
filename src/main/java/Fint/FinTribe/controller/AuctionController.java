@@ -21,30 +21,16 @@ public class AuctionController {
     private final AuctionService auctionService;
 
     // 1. 새로운 경매 가격 제안
-    // 1-1. 거래 요청
     @PostMapping("/price")
-    public ResponseEntity<?> newPriceRequest(@Valid @RequestBody NewPriceTransactionRequest newPriceTransactionRequest) {
-        TransactionResponse transactionResponse = auctionService.newPrice(newPriceTransactionRequest);
-        return new ResponseEntity<>(transactionResponse, HttpStatus.OK);
-    }
-    // 1-2. 거래 성사
-    @PostMapping("/price-success")
-    public ResponseEntity<?> newPriceSuccess(@Valid @RequestBody NewPriceRequest newPriceRequest) {
-        NewPriceResponse newPriceResponse = auctionService.newPriceSuccess(newPriceRequest);
+    public ResponseEntity<?> newPrice(@Valid @RequestBody NewPriceRequest newPriceRequest) {
+        NewPriceResponse newPriceResponse = auctionService.newPrice(newPriceRequest);
         return new ResponseEntity<>(newPriceResponse, HttpStatus.OK);
     }
 
     // 2. 기존 경매 참여
-    // 2-1. 거래 요청
     @PostMapping("/participate")
-    public ResponseEntity<?> participateAuctionRequest(@Valid @RequestBody ParticipateAuctionTransactionRequest participateAuctionTransactionRequest) {
-        TransactionResponse transactionResponse = auctionService.participateAuction(participateAuctionTransactionRequest);
-        return new ResponseEntity<>(transactionResponse, HttpStatus.OK);
-    }
-    // 2-2. 거래 성사
-    @PostMapping("/participate-success")
-    public ResponseEntity<?> participateAuctionSuccess(@Valid @RequestBody ParticipateAuctionRequest participateAuctionRequest) {
-        ParticipateAuctionResponse participateAuctionResponse = auctionService.participateAuctionSuccess(participateAuctionRequest);
+    public ResponseEntity<?> participateAuction(@Valid @RequestBody ParticipateAuctionRequest participateAuctionRequest) {
+        ParticipateAuctionResponse participateAuctionResponse = auctionService.participateAuction(participateAuctionRequest);
         return new ResponseEntity<>(participateAuctionResponse, HttpStatus.OK);
     }
 
