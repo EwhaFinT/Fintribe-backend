@@ -2,7 +2,7 @@ package Fint.FinTribe.payload.request;
 
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
@@ -16,7 +16,7 @@ public class UploadRequest {
     @NonNull
     private double price;
     @NonNull
-    private LocalDate auctionDate;
+    private LocalDateTime auctionDate;
     @NonNull
     private String detail;
     @NonNull
