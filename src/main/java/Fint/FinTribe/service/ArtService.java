@@ -26,7 +26,7 @@ public class ArtService {
     // 1. 작품 업로드
     public UploadResponse upload(UploadRequest uploadRequest) {
         // 경매 가능한 날짜인지 확인
-        if(auctionService.countArtwork(uploadRequest.getAuctionDate()) > 3) return new UploadResponse(null);
+        if(auctionService.countArtwork(uploadRequest.getAuctionDate().toLocalDate()) >= 3) return new UploadResponse(null);
         // TODO: nft 주소 받기
         List<ObjectId> userId = new ArrayList<>();
         List<Double> ratio = new ArrayList<>();
@@ -40,7 +40,7 @@ public class ArtService {
                 .userId(userId).ratio(ratio)
                 .detail(uploadRequest.getDetail()).build();
         artRepository.save(art);
-        auctionService.setAuctionDate(art.getArtId(), uploadRequest.getAuctionDate());
+        auctionService.setAuctionDate(art.getArtId(), uploadRequest.getAuctionDate().toLocalDate());
         return new UploadResponse(art.getArtId().toString());
     }
 
