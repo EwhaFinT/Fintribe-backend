@@ -28,7 +28,6 @@ public class ArtService {
         // 경매 가능한 날짜인지 확인
         int cnt = auctionService.countArtwork(uploadRequest.getAuctionDate().toLocalDate());
         if(cnt >= 3) return new UploadResponse(null, "해당 경매 일자에 작품을 올릴 수 없습니다.");
-        else if(cnt == -1) return new UploadResponse(null, "에러");
 
         // TODO: nft 주소 받기
 
