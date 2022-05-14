@@ -320,16 +320,9 @@ public class AuctionService {
         return artRepository.save(art);
     }
 
-    public int countArtwork(int type, LocalDate date) {
-        if(type == 0) {
-            AuctionDate auctionDate = auctionDateRepository.findByAuctionDate(date).get();
-            return auctionDate.getArtId().size(); // 신규 경매
-        }
-        else if(type == 1) {
-            ResaleDate resaleDate = resaleDateRepository.findByResaleDate(date).get();
-            return resaleDate.getArtId().size(); // 재경매
-        }
-        return 0;
+    public int countArtwork(LocalDate date) {
+        AuctionDate auctionDate = auctionDateRepository.findByAuctionDate(date).get();
+        return auctionDate.getArtId().size(); // 신규 경매
     }
 
     public void setAuctionDate(ObjectId artId, LocalDate date) { // (작품 업로드)
