@@ -26,8 +26,12 @@ public class ArtService {
     // 1. 작품 업로드
     public UploadResponse upload(UploadRequest uploadRequest) {
         // 경매 가능한 날짜인지 확인
-        if(auctionService.countArtwork(uploadRequest.getAuctionDate().toLocalDate()) >= 3) return new UploadResponse(null);
+        int cnt = auctionService.countArtwork(uploadRequest.getAuctionDate().toLocalDate());
+        if(cnt >= 3) return new UploadResponse(null, "해당 경매 일자에 작품을 올릴 수 없습니다.");
+        else if(cnt == -1) return new UploadResponse(null, "에러");
+
         // TODO: nft 주소 받기
+
         List<ObjectId> userId = new ArrayList<>();
         List<Double> ratio = new ArrayList<>();
         userId.add(new ObjectId(uploadRequest.getUserId()));
@@ -41,7 +45,7 @@ public class ArtService {
                 .detail(uploadRequest.getDetail()).build();
         artRepository.save(art);
         auctionService.setAuctionDate(art.getArtId(), uploadRequest.getAuctionDate().toLocalDate());
-        return new UploadResponse(art.getArtId().toString());
+        return new UploadResponse(art.getArtId().toString(), null);
     }
 
     // 2. 현재 진행중인 경매의 art url 반환 (artId, paint 리스트)
