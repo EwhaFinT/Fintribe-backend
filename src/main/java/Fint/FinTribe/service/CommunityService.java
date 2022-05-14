@@ -2,7 +2,11 @@ package Fint.FinTribe.service;
 
 import Fint.FinTribe.domain.art.Art;
 import Fint.FinTribe.domain.art.ArtRepository;
+import Fint.FinTribe.domain.auctionDate.AuctionDate;
+import Fint.FinTribe.domain.auctionDate.AuctionDateRepository;
 import Fint.FinTribe.domain.community.*;
+import Fint.FinTribe.domain.resaleDate.ResaleDate;
+import Fint.FinTribe.domain.resaleDate.ResaleDateRepository;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
@@ -10,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,8 +29,8 @@ public class CommunityService {
     private final VoteRepository voteRepository;
     private final ParticipantVoteRepository participantVoteRepository;
     private final ArtRepository artRepository;
+    private final ResaleDateRepository resaleDateRepository;
     private final UserService userService;
-    private final AuctionService auctionService;
 
     //DB Article 조회
     private List<Article> findArticlesByCommunityId(ObjectId communityId){
@@ -282,7 +287,7 @@ public class CommunityService {
 
     //Vote 생성
     public VoteResponse createVote(VoteProposalRequest voteRequest){
-        int flag = auctionService.countArtwork(1, voteRequest.getEndTime().toLocalDate());
+        int flag = countArtwork(voteRequest.getEndTime().toLocalDate());
         if(flag < 3){
             voteRepository.save(voteProposalRequestToEntity(voteRequest));
             return new VoteResponse("success");
@@ -349,5 +354,10 @@ public class CommunityService {
             });
         }
         return ratio.get();
+    }
+
+    public int countArtwork(LocalDate date) {
+        ResaleDate resaleDate = resaleDateRepository.findByResaleDate(date).get();
+        return resaleDate.getArtId().size(); // 재경매
     }
 }
