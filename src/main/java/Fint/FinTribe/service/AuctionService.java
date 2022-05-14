@@ -11,6 +11,7 @@ import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.CommunityService;
+import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,12 @@ public class AuctionService {
     // 1. 새로운 경매
     public NewPriceResponse newPrice(NewPriceRequest newPriceRequest) {
         ObjectId auctionId = auctionRepository.findByArtId(new ObjectId(newPriceRequest.getArtId())).get().getAuctionId();
+
+        List<PriceResponse> pricelist = findPricelist(auctionId);
+        Collections.sort(pricelist, new PriceComparator());
+        double maxPrice = findMaxPrice(pricelist);
+        if(newPriceRequest.getAuctionPrice() <= maxPrice) return new NewPriceResponse("");  // 제안가 오류
+
         ObjectId userId = new ObjectId(newPriceRequest.getUserId());
         if(newPriceRequest.getRatio() > 1.0 || newPriceRequest.getRatio() <= 0.0) return new NewPriceResponse("");   // 지분 설정 오류
 
@@ -322,8 +329,13 @@ public class AuctionService {
 
     public int countArtwork(LocalDate date) {
         System.out.println(date); // TODO : 추후 삭제 (디버깅용)
-        AuctionDate auctionDate = auctionDateRepository.findByAuctionDate(date).get();
-        return auctionDate.getArtId().size(); // 신규 경매
+        try {
+            AuctionDate auctionDate = auctionDateRepository.findByAuctionDate(date).get();
+            return auctionDate.getArtId().size();   // 신규 경매
+        } catch (MongoException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     public void setAuctionDate(ObjectId artId, LocalDate date) { // (작품 업로드)
