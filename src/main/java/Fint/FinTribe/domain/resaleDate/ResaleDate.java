@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Getter
+@Setter
 @Builder
 @Document(collection = "resale_date")
 public class ResaleDate {
