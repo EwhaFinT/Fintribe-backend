@@ -329,13 +329,9 @@ public class AuctionService {
 
     public int countArtwork(LocalDate date) {
         System.out.println(date); // TODO : 추후 삭제 (디버깅용)
-        try {
-            AuctionDate auctionDate = auctionDateRepository.findByAuctionDate(date).get();
-            return auctionDate.getArtId().size();   // 신규 경매
-        } catch (MongoException e) {
-            e.printStackTrace();
-        }
-        return -1;
+        Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(date);
+        if(!auctionDate.isPresent()) return 0;
+        else return auctionDate.get().getArtId().size();
     }
 
     public void setAuctionDate(ObjectId artId, LocalDate date) { // (작품 업로드)
