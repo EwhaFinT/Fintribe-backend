@@ -50,6 +50,12 @@ public class AuctionService {
     // 1. 새로운 경매
     public NewPriceResponse newPrice(NewPriceRequest newPriceRequest) {
         ObjectId auctionId = auctionRepository.findByArtId(new ObjectId(newPriceRequest.getArtId())).get().getAuctionId();
+
+        List<PriceResponse> pricelist = findPricelist(auctionId);
+        Collections.sort(pricelist, new PriceComparator());
+        double maxPrice = findMaxPrice(pricelist);
+        if(newPriceRequest.getAuctionPrice() <= maxPrice) return new NewPriceResponse("");  // 제안가 오류
+
         ObjectId userId = new ObjectId(newPriceRequest.getUserId());
         if(newPriceRequest.getRatio() > 1.0 || newPriceRequest.getRatio() <= 0.0) return new NewPriceResponse("");   // 지분 설정 오류
 
