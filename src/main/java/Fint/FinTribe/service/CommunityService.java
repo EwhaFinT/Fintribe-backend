@@ -25,6 +25,7 @@ public class CommunityService {
     private final ParticipantVoteRepository participantVoteRepository;
     private final ArtRepository artRepository;
     private final UserService userService;
+    private final AuctionService auctionService;
 
     //DB Article 조회
     private List<Article> findArticlesByCommunityId(ObjectId communityId){
@@ -281,8 +282,13 @@ public class CommunityService {
 
     //Vote 생성
     public VoteResponse createVote(VoteProposalRequest voteRequest){
-        voteRepository.save(voteProposalRequestToEntity(voteRequest));
-        return new VoteResponse("success");
+        int flag = auctionService.countArtwork(1, voteRequest.getEndTime().toLocalDate());
+        if(flag < 3){
+            voteRepository.save(voteProposalRequestToEntity(voteRequest));
+            return new VoteResponse("success");
+        }
+        else
+            return new VoteResponse("경매 가능한 일자가 아닙니다.");
     }
 
     //Vote 참여
