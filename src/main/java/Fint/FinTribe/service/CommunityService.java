@@ -287,7 +287,7 @@ public class CommunityService {
 
     //Vote 생성
     public VoteResponse createVote(VoteProposalRequest voteRequest){
-        int flag = countArtwork(voteRequest.getEndTime().toLocalDate());
+        int flag = countArtwork(voteRequest.getEndTime());
         if(flag < 3){
             voteRepository.save(voteProposalRequestToEntity(voteRequest));
             return new VoteResponse("success");
@@ -308,7 +308,17 @@ public class CommunityService {
                 vote.setAgreement(vote.getAgreement() + ratio);
                 if(vote.getAgreement() > 0.5){
                     vote.setEndTime(LocalDateTime.now());
-                    //auction에 올리는 함수 추가
+                    Optional<ResaleDate> resale = resaleDateRepository.findByResaleDate(vote.getEndTime().toLocalDate().plusDays(1L));
+                    if(resale.isPresent()){
+                        ResaleDate resaleDate = resale.get();
+                        List<ObjectId> artIdList = resaleDate.getArtId();
+                        artIdList.add(communityRepository.findById(vote.getCommunityId()).get().getArtId());
+                        resaleDate.setArtId(artIdList);
+                        resaleDateRepository.save(resaleDate);
+                    }
+                    else{
+                        saveResaleDate(vote.getEndTime().toLocalDate().plusDays(1L), communityRepository.findById(vote.getCommunityId()).get().getArtId());
+                    }
                 }
             }
             else{
@@ -356,8 +366,18 @@ public class CommunityService {
         return ratio.get();
     }
 
-    public int countArtwork(LocalDate date) {
-        ResaleDate resaleDate = resaleDateRepository.findByResaleDate(date).get();
-        return resaleDate.getArtId().size(); // 재경매
+    private int countArtwork(LocalDateTime date) {
+        List<Vote> voteList = voteRepository.findVotesByEndTime(date);
+        return voteList.size();
+    }
+
+    //새로운 resaledate 저장
+    private ResaleDate saveResaleDate(LocalDate resaleDate, ObjectId artId){
+        List<ObjectId> artIdList = new ArrayList<>();
+        artIdList.add(artId);
+        return ResaleDate.builder()
+                .resaleDate(resaleDate)
+                .artId(artIdList)
+                .build();
     }
 }
