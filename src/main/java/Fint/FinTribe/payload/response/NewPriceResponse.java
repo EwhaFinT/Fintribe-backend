@@ -6,4 +6,5 @@ import lombok.*;
 @AllArgsConstructor
 public class NewPriceResponse {
     private String priceId;
+    private String errorMsg;
 }

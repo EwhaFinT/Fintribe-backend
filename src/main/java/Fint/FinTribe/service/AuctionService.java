@@ -11,7 +11,6 @@ import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.CommunityService;
-import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
@@ -50,22 +49,24 @@ public class AuctionService {
 
     // 1. 새로운 경매
     public NewPriceResponse newPrice(NewPriceRequest newPriceRequest) {
-        ObjectId auctionId = auctionRepository.findByArtId(new ObjectId(newPriceRequest.getArtId())).get().getAuctionId();
+        Optional<Auction> auction = auctionRepository.findByArtId(new ObjectId(newPriceRequest.getArtId()));
+        if(!auction.isPresent()) return new NewPriceResponse(null, "해당 경매에 참여하실 수 없습니다.");  // 경매 정보를 찾을 수 없는 경우
 
+        ObjectId auctionId = auction.get().getAuctionId();
         List<PriceResponse> pricelist = findPricelist(auctionId);
         Collections.sort(pricelist, new PriceComparator());
         double maxPrice = findMaxPrice(pricelist);
-        if(newPriceRequest.getAuctionPrice() <= maxPrice) return new NewPriceResponse("");  // 제안가 오류
+        if(newPriceRequest.getAuctionPrice() <= maxPrice) return new NewPriceResponse(null, "현재 상한가보다 높은 가격을 제시해주세요.");  // 제안가 오류
 
         ObjectId userId = new ObjectId(newPriceRequest.getUserId());
-        if(newPriceRequest.getRatio() > 1.0 || newPriceRequest.getRatio() <= 0.0) return new NewPriceResponse("");   // 지분 설정 오류
+        if(newPriceRequest.getRatio() > 1.0 || newPriceRequest.getRatio() <= 0.0) return new NewPriceResponse(null, "올바르지 못한 지분입니다.");   // 지분 설정 오류
 
         ObjectId newPriceId = (ObjectId) savePrice(auctionId, newPriceRequest.getAuctionPrice(), newPriceRequest.getRatio());   // 가격 저장
         List<String> rlp = makeRLPTx(auctionId, userId, newPriceRequest.getAuctionPrice(), newPriceRequest.getRatio());         // RLP 생성
         saveParticipantAuction(newPriceId, userId, newPriceRequest.getRatio(), rlp);
 
         if(newPriceRequest.getRatio() == 1.0) successAuction(auctionId, newPriceId);   // 낙찰인 경우
-        return new NewPriceResponse(newPriceId.toString());
+        return new NewPriceResponse(newPriceId.toString(), null);
     }
 
     // 2. 기존 경매
@@ -74,7 +75,7 @@ public class AuctionService {
         // 가격 저장 및 갱신
         double remainderRatio = price.getRemainderRatio();
         double newRatio = participateAuctionRequest.getRatio();
-        if(remainderRatio < newRatio || newRatio <= 0.0) return new ParticipateAuctionResponse("");    // 지분 설정 오류
+        if(remainderRatio < newRatio || newRatio <= 0.0) return new ParticipateAuctionResponse(null);    // 지분 설정 오류
 
         ObjectId userId = new ObjectId(participateAuctionRequest.getUserId());
         List<String> rlp = makeRLPTx(price.getAuctionId(), userId, price.getAuctionPrice(), newRatio);
@@ -89,8 +90,12 @@ public class AuctionService {
 
     // 거래 RLP 생성
     private List<String> makeRLPTx(ObjectId auctionId, ObjectId userId, double price, double ratio) {
-        String from = userService.findByUserId(userId).get().getWallet();
-        ObjectId artId = auctionRepository.findById(auctionId).get().getArtId();
+        Optional<User> user = userService.findByUserId(userId);
+        Optional<Auction> auction = auctionRepository.findById(auctionId);
+        if(!user.isPresent() || !auction.isPresent()) return null;
+
+        String from = user.get().getWallet();
+        ObjectId artId = auction.get().getArtId();
         Art art = artRepository.findById(artId).get();
         List<ObjectId> objTo = art.getUserId();
         List<Double> ratioList = art.getRatio();
@@ -126,8 +131,10 @@ public class AuctionService {
 
     // 3. 현재 상한가 & 기존 경매 제안 리스트 받아오기
     public PricelistResponse getPricelist(ObjectId artId) {
-        ObjectId auctionId = auctionRepository.findByArtId(artId).get().getAuctionId();
+        Optional<Auction> checkAuction = auctionRepository.findByArtId(artId);
+        if(!checkAuction.isPresent()) return new PricelistResponse(0, null);    // 경매 정보를 찾을 수 없는 경우
 
+        ObjectId auctionId = checkAuction.get().getAuctionId();
         List<PriceResponse> pricelist = findPricelist(auctionId);
         Collections.sort(pricelist, new PriceComparator());
 
@@ -199,15 +206,17 @@ public class AuctionService {
 
     // 낙찰 성공시 이전 경매 내역애서 상한가보다 낮은 경매 삭제 및 map에 추가
     private void successAuction(ObjectId auctionId, ObjectId priceId) {
-        Price newPrice = priceRepository.findById(priceId).get();   // (auctionId, Price)
+        Optional<Price> newPrice = priceRepository.findById(priceId);
+        if(!newPrice.isPresent()) return;
+
         if(auctionMap.containsKey(auctionId)) {
             Price maxPrice = auctionMap.get(auctionId);
-            if(maxPrice.getAuctionPrice() < newPrice.getAuctionPrice()) {   // 상한가 갱신
-                auctionMap.replace(auctionId, newPrice);
-                deleteInvalidAuctions(auctionId, newPrice.getAuctionPrice());
+            if(maxPrice.getAuctionPrice() < newPrice.get().getAuctionPrice()) {   // 상한가 갱신
+                auctionMap.replace(auctionId, newPrice.get());
+                deleteInvalidAuctions(auctionId, newPrice.get().getAuctionPrice());
             }
         }
-        else auctionMap.put(auctionId, newPrice);
+        else auctionMap.put(auctionId, newPrice.get());
     }
     
     // 현재 상한가보다 낮은 경매가 삭제
@@ -284,17 +293,17 @@ public class AuctionService {
             // 결제 승인
             for(int i = 0; i < rlp.size(); i++) submitRlpTransaction(rlp.get(i));
 
-            // 낙찰 알림 메일 전송
-            Art art = artRepository.findByAuctionId(auctionId).get();
-            for(int i = 0; i < participantUserId.size(); i++) {
-                User user = userService.findByUserId(participantUserId.get(i)).get();
-                userService.sendAuctionAlarm(user.getName(), art.getArtName(), user.getEmail());
+            Optional<Art> art = artRepository.findByAuctionId(auctionId);
+            if(art.isPresent()) {
+                // 낙찰 알림 메일 전송
+                for(int i = 0; i < participantUserId.size(); i++) {
+                    User user = userService.findByUserId(participantUserId.get(i)).get();
+                    userService.sendAuctionAlarm(user.getName(), art.get().getArtName(), user.getEmail());
+                }
+                // 판매 상태 변경 및 커뮤니티 생성
+                changeSoldState(art.get().getArtId(), participantUserId, participantRatio);
+                communityService.createCommunity(art.get().getArtId(), participantUserId, participantRatio);
             }
-            
-            // 판매 상태 변경 및 커뮤니티 생성
-            Auction auction = auctionRepository.findById(auctionId).get();
-            changeSoldState(auction.getArtId(), participantUserId, participantRatio);
-            communityService.createCommunity(auction.getArtId(), participantUserId, participantRatio);
         }
         auctionMap.clear();
     }
@@ -328,7 +337,6 @@ public class AuctionService {
     }
 
     public int countArtwork(LocalDate date) {
-        System.out.println(date); // TODO : 추후 삭제 (디버깅용)
         Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(date);
         if(!auctionDate.isPresent()) return 0;
         else return auctionDate.get().getArtId().size();
