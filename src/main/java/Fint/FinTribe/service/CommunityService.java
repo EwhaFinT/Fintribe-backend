@@ -141,13 +141,15 @@ public class CommunityService {
     public List<CommunitiesResponse> getCommunities(String userId){
         List<ObjectId> artIdList = userService.getArtId(new ObjectId(userId));
         List<CommunitiesResponse> responseList = new ArrayList<>();
+        if(artIdList.isEmpty()){
+            return new ArrayList<>();
+        }
         for(ObjectId artId : artIdList){
             Art art = artRepository.findById(artId).get();
             communityRepository.findByArtIdAndIsDeleted(artId, false).ifPresent(community -> {
                 CommunitiesResponse response = new CommunitiesResponse(community.getCommunityId().toString(), art.getArtName());
                 responseList.add(response);
             });
-
         }
         return responseList;
     }
@@ -359,8 +361,8 @@ public class CommunityService {
         if(voteOptional.isPresent()){
             ObjectId communityId = voteOptional.get().getCommunityId();
             communityRepository.findById(communityId).ifPresent(community -> {
-                    int userIndex = community.getUserIdList().indexOf(userId);
-                    ratio.set(community.getRatioList().get(userIndex));
+                int userIndex = community.getUserIdList().indexOf(userId);
+                ratio.set(community.getRatioList().get(userIndex));
             });
         }
         return ratio.get();
