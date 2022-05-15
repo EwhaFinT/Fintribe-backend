@@ -1,6 +1,8 @@
 package Fint.FinTribe.service;
 
 import Fint.FinTribe.config.SecurityConfig;
+import Fint.FinTribe.domain.art.Art;
+import Fint.FinTribe.domain.art.ArtRepository;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.domain.user.UserRespository;
 import Fint.FinTribe.payload.request.*;
@@ -25,6 +27,7 @@ public class UserService {
     private final String accessKeyId = "KASK489KAHY54740WDAAL1PU";
     private final String secretAccessKey = "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs";
     private final UserRespository userRespository;
+    private final ArtRepository artRespository;
     private final SecurityConfig securityConfig;
     private final JavaMailSender javaMailSender;
 
@@ -51,8 +54,15 @@ public class UserService {
     // 3. 마이페이지
     public MypageResponse myPage(ObjectId userId) {
         Optional<User> user = userRespository.findById(userId);
-        if(user.isEmpty()) return new MypageResponse(null, null);
-        return new MypageResponse(user.get().getWallet(), user.get().getArtId());
+        if(user.isEmpty()) return new MypageResponse(null);
+
+        List<String> paint = new ArrayList<>();
+        for(int i = 0; i < user.get().getArtId().size(); i++) {
+            ObjectId artId = user.get().getArtId().get(i);
+            Optional<Art> art = artRespository.findById(artId);
+            if(art.isPresent()) paint.add(art.get().getPaint());
+        }
+        return new MypageResponse(paint);
     }
 
     // 4. 아이디 찾기

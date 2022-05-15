@@ -9,6 +9,5 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class MypageResponse {
-    private String wallet;
-    private List<ObjectId> artIdList;
+    private List<String> paint;
 }
