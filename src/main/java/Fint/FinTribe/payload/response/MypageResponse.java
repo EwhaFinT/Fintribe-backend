@@ -2,7 +2,6 @@ package Fint.FinTribe.payload.response;
 
 import lombok.AllArgsConstructor;
 import lombok.*;
-import org.bson.types.ObjectId;
 
 import java.util.List;
 
