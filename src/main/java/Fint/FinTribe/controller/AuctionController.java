@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
 
 import javax.validation.Valid;
 import java.time.LocalDate;
@@ -43,7 +42,7 @@ public class AuctionController {
 
     // 자정이되면 낙찰된 작품 결제 & 새로운 경매 작품 올리기
     @Scheduled(cron="0 0 0 * * *", zone="Asia/Seoul")
-    public void startAuction() throws ApiException {
+    public void startAuction() {
         // 결제
         auctionService.makePayment();
         // 다음 경매 시작

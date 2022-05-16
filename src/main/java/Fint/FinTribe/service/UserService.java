@@ -1,12 +1,15 @@
 package Fint.FinTribe.service;
 
 import Fint.FinTribe.config.SecurityConfig;
+import Fint.FinTribe.domain.art.Art;
+import Fint.FinTribe.domain.art.ArtRepository;
 import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.domain.user.UserRespository;
 import Fint.FinTribe.payload.request.*;
 import Fint.FinTribe.payload.response.*;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -21,10 +24,15 @@ import java.util.*;
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
-    private final String chainId = "1001";
-    private final String accessKeyId = "KASK489KAHY54740WDAAL1PU";
-    private final String secretAccessKey = "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs";
+    @Value("${caver.kas.chainId}")
+    private String chainId;
+    @Value("${caver.kas.accessKeyId}")
+    private String accessKeyId;
+    @Value("${caver.kas.secretAccessKey}")
+    private String secretAccessKey;
+
     private final UserRespository userRespository;
+    private final ArtRepository artRespository;
     private final SecurityConfig securityConfig;
     private final JavaMailSender javaMailSender;
 
@@ -51,8 +59,16 @@ public class UserService {
     // 3. 마이페이지
     public MypageResponse myPage(ObjectId userId) {
         Optional<User> user = userRespository.findById(userId);
-        if(user.isEmpty()) return new MypageResponse(null, null);
-        return new MypageResponse(user.get().getWallet(), user.get().getArtId());
+        if(user.isEmpty()) return new MypageResponse(null);
+
+        if(user.get().getArtId().size() == 0) return new MypageResponse(null);
+        List<String> paint = new ArrayList<>();
+        for(int i = 0; i < user.get().getArtId().size(); i++) {
+            ObjectId artId = user.get().getArtId().get(i);
+            Optional<Art> art = artRespository.findById(artId);
+            if(art.isPresent()) paint.add(art.get().getPaint());
+        }
+        return new MypageResponse(paint);
     }
 
     // 4. 아이디 찾기
@@ -96,8 +112,10 @@ public class UserService {
         }
     }
 
+    public Object saveUser(User user) { return userRespository.save(user); }
+
     public void sendAuctionAlarm(String userName, String artName, String email) {
-        String emailText = userName + "님 참가하신 경매 작품 <" + artName + ">을 성공적으로 낙찰했습니다.";
+        String emailText = userName + "님께서 참가하신 경매 작품 <" + artName + ">을 성공적으로 낙찰했습니다.";
         SimpleMailMessage message = makeEmailForm(email, "[FinTribe: 낙찰 알림]", emailText);
         javaMailSender.send(message);
     }
