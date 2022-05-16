@@ -13,6 +13,7 @@ import Fint.FinTribe.payload.response.*;
 import Fint.FinTribe.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +31,14 @@ import java.util.*;
 @RequiredArgsConstructor
 @Transactional
 public class AuctionService {
-    private final String chainId = "1001";
-    private final String accessKeyId = "KASK489KAHY54740WDAAL1PU";
-    private final String secretAccessKey = "KcCPXC2EiGze7svsh0v1w7tlnb9e-q23QoUW4yWs";
-    private final String feePayer = "0xECaf89B630EE5F86bE75Bd4944DB51E3B3809a16";
+    @Value("${caver.kas.chainId}")
+    private String chainId;
+    @Value("${caver.kas.accessKeyId}")
+    private String accessKeyId;
+    @Value("${caver.kas.secretAccessKey}")
+    private String secretAccessKey;
+    @Value("${caver.kas.feePayer}")
+    private String feePayer;
 
     private final AuctionRepository auctionRepository;
     private final ParticipantAuctionRepository participantAuctionRepository;
@@ -186,11 +191,11 @@ public class AuctionService {
         return newPriceId;
     }
 
-    private Object saveParticipantAuction(ObjectId priceId, ObjectId userId, double ratio, List<String> transactionHash) {
+    private void saveParticipantAuction(ObjectId priceId, ObjectId userId, double ratio, List<String> transactionHash) {
         ParticipantAuction participantAuction = ParticipantAuction.builder()
                 .participantAuctionId(new ObjectId()).priceId(priceId).userId(userId)
                 .ratio(ratio).rlp(transactionHash).build();
-        return participantAuctionRepository.save(participantAuction);
+        participantAuctionRepository.save(participantAuction);
     }
 
     private Object updatePrice(double newRatio, Price price) {
@@ -276,6 +281,9 @@ public class AuctionService {
         Iterator<ObjectId> keys = auctionMap.keySet().iterator();   // (auctionId, Price)
         while(keys.hasNext()) {
             ObjectId auctionId = keys.next();
+            Optional<Auction> auction = auctionRepository.findById(auctionId);
+            if(!auction.isPresent()) continue;
+
             Price price = auctionMap.get(auctionId);
             List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(price.getPriceId());
 
@@ -293,12 +301,13 @@ public class AuctionService {
             // 결제 승인
             for(int i = 0; i < rlp.size(); i++) submitRlpTransaction(rlp.get(i));
 
-            Optional<Art> art = artRepository.findByAuctionId(auctionId);
+            Optional<Art> art = artRepository.findById(auction.get().getArtId());
             if(art.isPresent()) {
                 // 낙찰 알림 메일 전송
                 for(int i = 0; i < participantUserId.size(); i++) {
-                    User user = userService.findByUserId(participantUserId.get(i)).get();
-                    userService.sendAuctionAlarm(user.getName(), art.get().getArtName(), user.getEmail());
+                    Optional<User> user = userService.findByUserId(participantUserId.get(i));
+                    if(!user.isPresent()) continue;
+                    userService.sendAuctionAlarm(user.get().getName(), art.get().getArtName(), user.get().getEmail());
                 }
                 // 판매 상태 변경 및 커뮤니티 생성
                 changeSoldState(art.get().getArtId(), participantUserId, participantRatio);
@@ -326,7 +335,10 @@ public class AuctionService {
 
     private void changeSoldState(ObjectId artId, List<ObjectId> userId, List<Double> ratio) { // 판매 상태 변경
         Optional<Art> art = artRepository.findById(artId);
-        if(art.isPresent()) updateArt(art.get(), userId, ratio);
+        if(art.isPresent()) {
+            updateArt(art.get(), userId, ratio);    // 작품 사용자 및 지분 업데이트
+            updateUser(artId, userId);  // 사용자 작품 업데이트
+        }
     }
 
     private Object updateArt(Art art, List<ObjectId> userId, List<Double> ratio) {
@@ -334,6 +346,17 @@ public class AuctionService {
         art.setUserId(userId);
         art.setRatio(ratio);
         return artRepository.save(art);
+    }
+
+    private void updateUser(ObjectId artId, List<ObjectId> userId) {
+        for(int i = 0; i < userId.size(); i++) {
+            Optional<User> user = userService.findByUserId(userId.get(i));
+            if(!user.isPresent()) continue;
+            List<ObjectId> artIdList = user.get().getArtId();
+            artIdList.remove(artId);
+            user.get().setArtId(artIdList);
+            userService.saveUser(user.get());
+        }
     }
 
     public int countArtwork(LocalDate date) {
