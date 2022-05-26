@@ -2,8 +2,6 @@ package Fint.FinTribe.service;
 
 import Fint.FinTribe.domain.art.Art;
 import Fint.FinTribe.domain.art.ArtRepository;
-import Fint.FinTribe.domain.auctionDate.AuctionDate;
-import Fint.FinTribe.domain.auctionDate.AuctionDateRepository;
 import Fint.FinTribe.domain.community.*;
 import Fint.FinTribe.domain.resaleDate.ResaleDate;
 import Fint.FinTribe.domain.resaleDate.ResaleDateRepository;
@@ -327,6 +325,7 @@ public class CommunityService {
                 vote.setDisagreement(vote.getDisagreement() + ratio);
                 if(vote.getDisagreement() > 0.5){
                     vote.setEndTime(LocalDateTime.now());
+                    vote.setIsDeleted(true);
                 }
             }
             voteRepository.save(vote);
@@ -337,14 +336,14 @@ public class CommunityService {
     }
 
     //Vote 조회
-    public VoteCheckResponse getVoteInformation(String voteId, String userId){
-        Optional<Vote> voteOp = voteRepository.findById(new ObjectId(voteId));
-        Double ratio = getRatio(new ObjectId(voteId), new ObjectId(userId));
+    public VoteCheckResponse getVoteInformation(String communityId, String userId){
+        Optional<Vote> voteOp = voteRepository.findVoteByCommunityId(new ObjectId(communityId));
+        Double ratio = getRatio(new ObjectId(communityId), new ObjectId(userId));
         if(!voteOp.isPresent()){
             return new VoteCheckResponse("No such vote");
         }
         Vote vote = voteOp.get();
-        return new VoteCheckResponse(voteId, vote.getUserId().toString(), vote.getIdentity(),
+        return new VoteCheckResponse(vote.getVoteId().toString(), vote.getUserId().toString(), vote.getIdentity(),
                 vote.getTitle(), vote.getResalePrice(), vote.getStartTime(), vote.getEndTime(),
                 vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement(), ratio);
     }
@@ -355,11 +354,10 @@ public class CommunityService {
     }
 
     //userId로 지분 조회
-    private Double getRatio(ObjectId voteId, ObjectId userId){
-        Optional<Vote> voteOptional = voteRepository.findById(voteId);
+    private Double getRatio(ObjectId communityId, ObjectId userId){
+        Optional<Vote> voteOptional = voteRepository.findVoteByCommunityId(communityId);
         AtomicReference<Double> ratio = new AtomicReference<>(0.0);
         if(voteOptional.isPresent()){
-            ObjectId communityId = voteOptional.get().getCommunityId();
             communityRepository.findById(communityId).ifPresent(community -> {
                 int userIndex = community.getUserIdList().indexOf(userId);
                 ratio.set(community.getRatioList().get(userIndex));

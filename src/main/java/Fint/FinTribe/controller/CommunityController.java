@@ -17,7 +17,6 @@ import java.util.List;
 public class CommunityController {
     private final CommunityService communityService;
 
-    //TODO; communtity 관련 api 수정 및 추가 필요
     //커뮤니티
     @GetMapping("/communities")
     public ResponseEntity<?> getCommunities(@RequestParam @Valid String userId){
@@ -95,8 +94,8 @@ public class CommunityController {
     }
 
     @GetMapping("/check")
-    public ResponseEntity<?> getVote(@RequestParam @Valid String voteId, @RequestParam @Valid String userId){
-        VoteCheckResponse voteResponse = communityService.getVoteInformation(voteId, userId);
+    public ResponseEntity<?> getVote(@RequestParam @Valid String communityId, @RequestParam @Valid String userId){
+        VoteCheckResponse voteResponse = communityService.getVoteInformation(communityId, userId);
         return new ResponseEntity<>(voteResponse, HttpStatus.OK);
     }
 }
