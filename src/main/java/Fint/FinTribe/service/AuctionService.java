@@ -50,7 +50,7 @@ public class AuctionService {
     private final UserService userService;
     private final CommunityService communityService;
 
-    public HashMap<ObjectId, Price> auctionMap = new HashMap<ObjectId, Price>();
+    //public HashMap<ObjectId, Price> auctionMap = new HashMap<ObjectId, Price>();
 
     // 1. 새로운 경매
     public NewPriceResponse newPrice(NewPriceRequest newPriceRequest) {
@@ -209,19 +209,22 @@ public class AuctionService {
         return participantAuctionRepository.save(participantAuction);
     }
 
-    // 낙찰 성공시 이전 경매 내역애서 상한가보다 낮은 경매 삭제 및 map에 추가
+    // 낙찰 성공시 이전 경매 내역애서 상한가보다 낮은 경매 삭제 및 필드 value 추가
     private void successAuction(ObjectId auctionId, ObjectId priceId) {
         Optional<Price> newPrice = priceRepository.findById(priceId);
         if(!newPrice.isPresent()) return;
 
-        if(auctionMap.containsKey(auctionId)) {
-            Price maxPrice = auctionMap.get(auctionId);
-            if(maxPrice.getAuctionPrice() < newPrice.get().getAuctionPrice()) {   // 상한가 갱신
-                auctionMap.replace(auctionId, newPrice.get());
+        Optional<Auction> auction = auctionRepository.findById(auctionId);
+        if(auction.isPresent()) {
+            Price maxPrice = auction.get().getPrice();
+            if(maxPrice != null && maxPrice.getAuctionPrice() < newPrice.get().getAuctionPrice()) { // 상한가 갱신
+                updateAuctionPrice(auctionId, newPrice.get());
                 deleteInvalidAuctions(auctionId, newPrice.get().getAuctionPrice());
             }
+            else if (maxPrice == null){ // 상한가 생성
+                updateAuctionPrice(auctionId, newPrice.get());
+            }
         }
-        else auctionMap.put(auctionId, newPrice.get());
     }
     
     // 현재 상한가보다 낮은 경매가 삭제
@@ -277,44 +280,46 @@ public class AuctionService {
     }
 
     // 낙찰 결제 진행 및 판매 상태 변경
-    public void makePayment() {
-        Iterator<ObjectId> keys = auctionMap.keySet().iterator();   // (auctionId, Price)
-        while(keys.hasNext()) {
-            ObjectId auctionId = keys.next();
-            Optional<Auction> auction = auctionRepository.findById(auctionId);
-            if(!auction.isPresent()) continue;
+    public void makePayment(LocalDate yesterday) {
+        Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(yesterday);
+        if(auctionDate.isPresent()){
+            List<ObjectId> artIdList = auctionDate.get().getArtId();
+            for(int i = 0; i < artIdList.size(); i++) {
+                Optional<Auction> auction = auctionRepository.findByArtId(artIdList.get(i));
+                if(!auction.isPresent()) continue;
 
-            Price price = auctionMap.get(auctionId);
-            List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(price.getPriceId());
+                Price price = auction.get().getPrice();
+                List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(price.getPriceId());
 
-            List<ObjectId> participantUserId = new ArrayList<>();   // 공동 투자자
-            List<Double> participantRatio = new ArrayList<>();      // 공동 투자자별 지분
-            List<String> rlp = new ArrayList<>();
+                List<ObjectId> participantUserId = new ArrayList<>();   // 공동 투자자
+                List<Double> participantRatio = new ArrayList<>();      // 공동 투자자별 지분
+                List<String> rlp = new ArrayList<>();
 
-            for(int i = 0; i < participantAuctionList.size(); i++) {
-                participantUserId.add(participantAuctionList.get(i).getUserId());
-                participantRatio.add(participantAuctionList.get(i).getRatio());
-                List<String> participantRlp = participantAuctionList.get(i).getRlp();
-                for(int j = 0; j < participantRlp.size(); j++) rlp.add(participantRlp.get(j));
-            }
-
-            // 결제 승인
-            for(int i = 0; i < rlp.size(); i++) submitRlpTransaction(rlp.get(i));
-
-            Optional<Art> art = artRepository.findById(auction.get().getArtId());
-            if(art.isPresent()) {
-                // 낙찰 알림 메일 전송
-                for(int i = 0; i < participantUserId.size(); i++) {
-                    Optional<User> user = userService.findByUserId(participantUserId.get(i));
-                    if(!user.isPresent()) continue;
-                    userService.sendAuctionAlarm(user.get().getName(), art.get().getArtName(), user.get().getEmail());
+                for(int j = 0; j < participantAuctionList.size(); j++) {
+                    participantUserId.add(participantAuctionList.get(j).getUserId());
+                    participantRatio.add(participantAuctionList.get(j).getRatio());
+                    List<String> participantRlp = participantAuctionList.get(j).getRlp();
+                    for(int k = 0; k < participantRlp.size(); k++) rlp.add(participantRlp.get(k));
                 }
-                // 판매 상태 변경 및 커뮤니티 생성
-                changeSoldState(art.get().getArtId(), participantUserId, participantRatio);
-                communityService.createCommunity(art.get().getArtId(), participantUserId, participantRatio);
+
+                // 결제 승인
+                for(int j = 0; j < rlp.size(); j++) submitRlpTransaction(rlp.get(j));
+
+                Optional<Art> art = artRepository.findById(auction.get().getArtId());
+                if(art.isPresent()) {
+                    // 낙찰 알림 메일 전송
+                    for(int j = 0; j < participantUserId.size(); j++) {
+                        Optional<User> user = userService.findByUserId(participantUserId.get(j));
+                        if(!user.isPresent()) continue;
+                        userService.sendAuctionAlarm(user.get().getName(), art.get().getArtName(), user.get().getEmail());
+                    }
+                    // 판매 상태 변경 및 커뮤니티 생성
+                    changeSoldState(art.get().getArtId(), participantUserId, participantRatio);
+                    communityService.createCommunity(art.get().getArtId(), participantUserId, participantRatio);
+                }
             }
+
         }
-        auctionMap.clear();
     }
 
     private void submitRlpTransaction(String rlp) {
@@ -369,6 +374,15 @@ public class AuctionService {
         Optional<AuctionDate> auctionDate = auctionDateRepository.findByAuctionDate(date);
         if(auctionDate.isPresent()) updateAuctionDate(artId, auctionDate.get());
         else saveAuctionDate(date, artId);
+    }
+
+    private Object updateAuctionPrice(ObjectId auctionId, Price price) {
+        Optional<Auction> auction = auctionRepository.findById(auctionId);
+        if(auction.isPresent()) {
+            auction.get().setPrice(price);
+            return auctionRepository.save(auction.get());
+        }
+        return null;
     }
 
     private Object saveAuctionDate(LocalDate date, ObjectId artId) {

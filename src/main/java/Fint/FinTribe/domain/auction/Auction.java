@@ -14,4 +14,5 @@ public class Auction {
     private ObjectId auctionId;
     private ObjectId artId;
     private boolean isDeleted;
+    private Price price;
 }
