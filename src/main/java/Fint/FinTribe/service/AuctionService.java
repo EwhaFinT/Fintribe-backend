@@ -50,8 +50,6 @@ public class AuctionService {
     private final UserService userService;
     private final CommunityService communityService;
 
-    //public HashMap<ObjectId, Price> auctionMap = new HashMap<ObjectId, Price>();
-
     // 1. 새로운 경매
     public NewPriceResponse newPrice(NewPriceRequest newPriceRequest) {
         Optional<Auction> auction = auctionRepository.findByArtId(new ObjectId(newPriceRequest.getArtId()));
@@ -89,7 +87,7 @@ public class AuctionService {
         else saveParticipantAuction(price.getPriceId(), userId, participateAuctionRequest.getRatio(), rlp);
         updatePrice(remainderRatio-newRatio, price);    // 가격 갱신
 
-        if(participateAuctionRequest.getRatio() == 1.0) successAuction(price.getAuctionId(), price.getPriceId()); // 낙찰인 경우
+        if(remainderRatio + newRatio == 1.0) successAuction(price.getAuctionId(), price.getPriceId()); // 낙찰인 경우
         return new ParticipateAuctionResponse(price.getPriceId().toString());
     }
 
