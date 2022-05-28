@@ -7,15 +7,19 @@ import Fint.FinTribe.domain.user.User;
 import Fint.FinTribe.domain.user.UserRespository;
 import Fint.FinTribe.payload.request.UploadRequest;
 import Fint.FinTribe.payload.response.ArtListResponse;
+import Fint.FinTribe.payload.response.NodeResponse;
 import Fint.FinTribe.payload.response.UploadResponse;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +40,7 @@ public class ArtService {
         if(cnt >= 3) return new UploadResponse(null, "해당 경매 일자에 작품을 올릴 수 없습니다.");
 
         // TODO: nft 주소 받기
+        String txHash = getHash(uploadRequest.getPaint());
 
         ObjectId newArtId = new ObjectId();
 
@@ -54,7 +59,7 @@ public class ArtService {
         Art art = Art.builder()
                 .artId(newArtId).artName(uploadRequest.getArtName()).painter(uploadRequest.getPainter())
                 .price(uploadRequest.getPrice())
-                .nftAdd(null)
+                .nftAdd(txHash)
                 .paint(uploadRequest.getPaint()).sold(false)
                 .userId(userId).ratio(ratio)
                 .detail(uploadRequest.getDetail()).build();
@@ -85,5 +90,22 @@ public class ArtService {
     public Art findArtById(ObjectId artId){
         //TODO; error ctrl 필요함
         return artRepository.findById(artId).orElseThrow();
+    }
+
+    public String getHash(String img){
+        final String url = "https://fintribenode.herokuapp.com/v1/mint";
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+        Map map = new HashMap<String, String>();
+        map.put("Content-Type", "application/json");
+
+        headers.setAll(map);
+
+        Map req_payload = new HashMap();
+        req_payload.put("img", img);
+
+        HttpEntity<?> request = new HttpEntity<>(req_payload, headers);
+
+        ResponseEntity<NodeResponse> response = new RestTemplate().postForEntity(url, request, NodeResponse.class);
+        return response.getBody().getTransactionHash();
     }
 }
