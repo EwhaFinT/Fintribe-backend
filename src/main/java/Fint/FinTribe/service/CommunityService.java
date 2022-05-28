@@ -57,7 +57,7 @@ public class CommunityService {
         return Article.builder()
                 .communityId(articleRequest.getCommunityId())
                 .userId(new ObjectId(articleRequest.getUserId()))
-                .identity(articleRequest.getIdentity())
+                .identity(userService.findByUserId(new ObjectId(articleRequest.getUserId())).get().getIdentity())
                 .title(articleRequest.getTitle())
                 .content(articleRequest.getContent())
                 .createdAt(now)

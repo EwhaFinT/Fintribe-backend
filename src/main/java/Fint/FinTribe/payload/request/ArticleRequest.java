@@ -14,6 +14,4 @@ public class ArticleRequest {
     String content;
     @NotNull
     ObjectId communityId;
-    @NotNull
-    String identity;
 }
