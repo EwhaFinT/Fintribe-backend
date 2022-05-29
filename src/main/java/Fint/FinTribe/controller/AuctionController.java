@@ -41,7 +41,7 @@ public class AuctionController {
     }
 
     // 자정이되면 낙찰된 작품 결제 & 새로운 경매 작품 올리기
-    @Scheduled(cron="0 0 0 * * *", zone="Asia/Seoul")
+    @Scheduled(cron="0 0 0 * * *")
     public void startAuction() {
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
