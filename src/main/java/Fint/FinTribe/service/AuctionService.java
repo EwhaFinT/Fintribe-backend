@@ -19,10 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import xyz.groundx.caver_ext_kas.CaverExtKAS;
 import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.FDTransactionResult;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.FDUserProcessRLPRequest;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.TransactionResult;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.ValueTransferTransactionRequest;
+import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.*;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -116,13 +113,14 @@ public class AuctionService {
             String stoh = "0x" + Long.toHexString(dtol);
 
             try {
-                ValueTransferTransactionRequest request = new ValueTransferTransactionRequest();
+                FDUserValueTransferTransactionRequest request = new FDUserValueTransferTransactionRequest();
                 request.setFrom(from);
                 request.setTo(to);
+                request.setFeePayer(feePayer);
                 request.setValue(stoh);
                 request.setSubmit(false);
 
-                TransactionResult transactionResult = caver.kas.wallet.requestValueTransfer(request);
+                FDTransactionResult transactionResult = caver.kas.wallet.requestFDValueTransferPaidByUser(request);
                 rlp.add(transactionResult.getRlp());
             } catch (ApiException e) {
                 System.out.println(e.getResponseBody());
@@ -287,6 +285,7 @@ public class AuctionService {
                 if(!auction.isPresent()) continue;
 
                 Price price = auction.get().getPrice();
+                if(price == null) continue; // 낙찰이 되지 않은 경우 결제 진행하지 않음
                 List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(price.getPriceId());
 
                 List<ObjectId> participantUserId = new ArrayList<>();   // 공동 투자자
