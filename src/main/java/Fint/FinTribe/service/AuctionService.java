@@ -19,10 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import xyz.groundx.caver_ext_kas.CaverExtKAS;
 import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.FDTransactionResult;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.FDUserProcessRLPRequest;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.TransactionResult;
-import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.ValueTransferTransactionRequest;
+import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.*;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -56,9 +53,8 @@ public class AuctionService {
         if(!auction.isPresent()) return new NewPriceResponse(null, "해당 경매에 참여하실 수 없습니다.");  // 경매 정보를 찾을 수 없는 경우
 
         ObjectId auctionId = auction.get().getAuctionId();
-        List<PriceResponse> pricelist = findPricelist(auctionId);
-        Collections.sort(pricelist, new PriceComparator());
-        double maxPrice = findMaxPrice(pricelist);
+        double maxPrice = findMaxPrice(auctionId);
+        if(maxPrice == -1) maxPrice = getStartPrice(auctionId);
         if(newPriceRequest.getAuctionPrice() <= maxPrice) return new NewPriceResponse(null, "현재 상한가보다 높은 가격을 제시해주세요.");  // 제안가 오류
 
         ObjectId userId = new ObjectId(newPriceRequest.getUserId());
@@ -116,17 +112,18 @@ public class AuctionService {
             String stoh = "0x" + Long.toHexString(dtol);
 
             try {
-                ValueTransferTransactionRequest request = new ValueTransferTransactionRequest();
+                FDUserValueTransferTransactionRequest request = new FDUserValueTransferTransactionRequest();
                 request.setFrom(from);
                 request.setTo(to);
+                request.setFeePayer(feePayer);
                 request.setValue(stoh);
                 request.setSubmit(false);
 
-                TransactionResult transactionResult = caver.kas.wallet.requestValueTransfer(request);
+                FDTransactionResult transactionResult = caver.kas.wallet.requestFDValueTransferPaidByUser(request);
                 rlp.add(transactionResult.getRlp());
             } catch (ApiException e) {
+                System.out.println("MAKE TRANSACTION ERROR");
                 System.out.println(e.getResponseBody());
-                e.printStackTrace();
             }
         }
         return rlp;
@@ -141,12 +138,12 @@ public class AuctionService {
         List<PriceResponse> pricelist = findPricelist(auctionId);
         Collections.sort(pricelist, new PriceComparator());
 
-        double maxPrice = findMaxPrice(pricelist);
+        double maxPrice = findMaxPrice(auctionId);
+
         // 1. 현재 상한가가 없는 경우 경매 시작가를 상한가로 반환
         if(pricelist == null || maxPrice == -1) {
-            Optional<Auction> auction = findAuctionByAuctionId(auctionId);
-            Optional<Art> art = artRepository.findById(auction.get().getArtId());
-            return new PricelistResponse(art.get().getPrice(), pricelist);
+            double startPrice = getStartPrice(auctionId);
+            return new PricelistResponse(startPrice, pricelist);
         }
         // 2. 현재 상한가와 기존 경매 제안 리스트 반환
         return new PricelistResponse(maxPrice, pricelist);
@@ -165,14 +162,17 @@ public class AuctionService {
     }
 
     // 3-2. 현재 상한가 구하기
-    private double findMaxPrice(List<PriceResponse> pricelist) {
-        int maxIndex;
-        for(maxIndex = 0; maxIndex < pricelist.size(); maxIndex++) {
-            if(pricelist.get(maxIndex).getRemainderRatio() == 0)
-                break;
-        }
-        if(maxIndex == pricelist.size()) return -1; // 현재 상한가가 없는 경우
-        return pricelist.get(maxIndex).getAuctionPrice();
+    private double findMaxPrice(ObjectId auctionId) {
+        Price maxPrice = auctionRepository.findById(auctionId).get().getPrice();
+        if(maxPrice == null) return -1;
+        return maxPrice.getAuctionPrice();
+    }
+
+    // 경매 시작가 조회
+    private double getStartPrice(ObjectId auctionId) {
+        Optional<Auction> auction = findAuctionByAuctionId(auctionId);
+        Optional<Art> art = artRepository.findById(auction.get().getArtId());
+        return art.get().getPrice();
     }
 
     private Optional<Auction> findAuctionByAuctionId(ObjectId auctionId) { return auctionRepository.findById(auctionId); }
@@ -287,6 +287,7 @@ public class AuctionService {
                 if(!auction.isPresent()) continue;
 
                 Price price = auction.get().getPrice();
+                if(price == null) continue; // 낙찰이 되지 않은 경우 결제 진행하지 않음
                 List<ParticipantAuction> participantAuctionList = participantAuctionRepository.findByPriceId(price.getPriceId());
 
                 List<ObjectId> participantUserId = new ArrayList<>();   // 공동 투자자
@@ -305,14 +306,25 @@ public class AuctionService {
 
                 Optional<Art> art = artRepository.findById(auction.get().getArtId());
                 if(art.isPresent()) {
-                    // 낙찰 알림 메일 전송
+
+                    // 그림 판매 내역 업데이트 (판매자 소유권 제거)
+                    List<ObjectId> userIdList = art.get().getUserId();
+                    for(int j= 0; j < userIdList.size(); j++) {
+                        Optional<User> user = userService.findByUserId(userIdList.get(j));
+                        if(!user.isPresent()) continue;
+                        userService.removeArtWork(user.get(), art.get().getArtId());
+                    }
+
+                    // 낙찰 알림 메일 전송 및 그림 구매 내역 업데이트
                     for(int j = 0; j < participantUserId.size(); j++) {
                         Optional<User> user = userService.findByUserId(participantUserId.get(j));
                         if(!user.isPresent()) continue;
+                        userService.buyArtwork(user.get(), art.get().getArtId());
                         userService.sendAuctionAlarm(user.get().getName(), art.get().getArtName(), user.get().getEmail());
                     }
+
                     // 판매 상태 변경 및 커뮤니티 생성
-                    changeSoldState(art.get().getArtId(), participantUserId, participantRatio);
+                    changeSoldState(art.get().getArtId(), price.getAuctionPrice(), participantUserId, participantRatio);
                     communityService.createCommunity(art.get().getArtId(), participantUserId, participantRatio);
                 }
             }
@@ -332,33 +344,19 @@ public class AuctionService {
         try{
             FDTransactionResult result = caver.kas.wallet.requestFDRawTransactionPaidByUser(rlpRequest);
         } catch(ApiException e) {
-            e.printStackTrace();
+            System.out.println("SUBMIT TRANSACTION ERROR");
+            System.out.println(e.getResponseBody());
         }
     }
 
-    private void changeSoldState(ObjectId artId, List<ObjectId> userId, List<Double> ratio) { // 판매 상태 변경
+    private void changeSoldState(ObjectId artId, double auctionPrice, List<ObjectId> userId, List<Double> ratio) { // 그림 상태 변경
         Optional<Art> art = artRepository.findById(artId);
         if(art.isPresent()) {
-            updateArt(art.get(), userId, ratio);    // 작품 사용자 및 지분 업데이트
-            updateUser(artId, userId);  // 사용자 작품 업데이트
-        }
-    }
-
-    private Object updateArt(Art art, List<ObjectId> userId, List<Double> ratio) {
-        art.setSold(true);
-        art.setUserId(userId);
-        art.setRatio(ratio);
-        return artRepository.save(art);
-    }
-
-    private void updateUser(ObjectId artId, List<ObjectId> userId) {
-        for(int i = 0; i < userId.size(); i++) {
-            Optional<User> user = userService.findByUserId(userId.get(i));
-            if(!user.isPresent()) continue;
-            List<ObjectId> artIdList = user.get().getArtId();
-            artIdList.remove(artId);
-            user.get().setArtId(artIdList);
-            userService.saveUser(user.get());
+            art.get().setSold(true);
+            art.get().setPrice(auctionPrice);
+            art.get().setUserId(userId);
+            art.get().setRatio(ratio);
+            artRepository.save(art.get());
         }
     }
 

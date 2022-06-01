@@ -180,4 +180,21 @@ public class UserService {
         user.setWallet(wallet);
         return userRespository.save(user);
     }
+
+    // 그림 구매 내역 업데이트
+    public Object buyArtwork(User user, ObjectId artId) {
+        List<ObjectId> artIdList = user.getArtId();
+        if(artIdList == null) artIdList = new ArrayList<>();
+        artIdList.add(artId);
+        user.setArtId(artIdList);
+        return userRespository.save(user);
+    }
+
+    // 그림 판매 내역 업데이트
+    public Object removeArtWork(User user, ObjectId artId) {
+        List<ObjectId> artIdList = user.getArtId();
+        artIdList.remove(artId);
+        user.setArtId(artIdList);
+        return userRespository.save(user);
+    }
 }
