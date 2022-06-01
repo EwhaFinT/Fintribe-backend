@@ -51,4 +51,17 @@ public class AuctionController {
         auctionService.deleteAuctions();
         auctionService.makeAuctions(today);
     }
+
+    // TODO : 테스트용 추후 삭제
+    @GetMapping("/make-auction")
+    public void makeAuction() {
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+
+        // 결제
+        auctionService.makePayment(yesterday);
+        // 다음 경매 시작
+        auctionService.deleteAuctions();
+        auctionService.makeAuctions(today);
+    }
 }
