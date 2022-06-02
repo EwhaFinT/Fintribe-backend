@@ -18,6 +18,11 @@ import xyz.groundx.caver_ext_kas.CaverExtKAS;
 import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.ApiException;
 import xyz.groundx.caver_ext_kas.rest_client.io.swagger.client.api.wallet.model.Account;
 
+import javax.mail.Message;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import java.util.*;
 
 @Service
@@ -30,6 +35,14 @@ public class UserService {
     private String accessKeyId;
     @Value("${caver.kas.secretAccessKey}")
     private String secretAccessKey;
+    @Value("${spring.mail.host}")
+    private String mailHost;
+    @Value("${spring.mail.port}")
+    private String mailPort;
+    @Value("${spring.mail.username}")
+    private String mailUserName;
+    @Value("${spring.mail.password}")
+    private String mailPassword;
 
     private final UserRespository userRespository;
     private final ArtRepository artRespository;
@@ -114,10 +127,9 @@ public class UserService {
 
     public Object saveUser(User user) { return userRespository.save(user); }
 
-    public void sendAuctionAlarm(String userName, String artName, String email) {
-        String emailText = userName + "님께서 참가하신 경매 작품 <" + artName + ">을 성공적으로 낙찰했습니다.";
-        SimpleMailMessage message = makeEmailForm(email, "[FinTribe: 낙찰 알림]", emailText);
-        javaMailSender.send(message);
+    public void sendAuctionAlarm(String userName, String artName, String paint, double price, String email) {
+        String emailContent = makeAuctionAlarmContent(userName, artName, paint, price);
+        transportAuctionAlarm(email, "[FinTribe: 낙찰 알림]", emailContent);
     }
 
     private Object saveUser(String identity, String password, String name, String phone, String email) { // 회원 저장
@@ -130,7 +142,7 @@ public class UserService {
         return userRespository.save(user); // 회원 저장
     }
 
-    // 메일 형식 만들기
+    // 비밀번호 찾기 메일 형식 만들기
     private SimpleMailMessage makeEmailForm(String to, String title, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
@@ -138,6 +150,44 @@ public class UserService {
         message.setSubject(title);
         message.setText(text);
         return message;
+    }
+
+    // 낙찰 알림 메일
+    private String makeAuctionAlarmContent(String userName, String artName, String paint, double price) {
+        String content = String.join(
+                System.getProperty("line.separator"),
+                "<div style='width: 100vw;'><h1>FinTribe 낙찰 성공</h1><hr>",
+                "<div>안녕하세요. FinTribe에서 낙찰 성공을 알려드립니다.<br/><br/><span style='color: blue;'>" + userName+ "</span>님께서 참가하신 경매 작품 <span style='color: blue; font-weight: 700;'>" + artName + "</span>을(를) 성공적으로 낙찰했습니다. 마이룸의 인벤토리를 확인해주세요!</div><br/><br/>",
+                "<div style='text-align: center;'><h1>" + artName + "</h1>" + price + " KLAY<br/><br/><img style='width: 100vw;' src='" + paint + "' alt='" + artName +"'></div></div>"
+        );
+        return content;
+    }
+
+    private void transportAuctionAlarm(String to, String title, String content) {
+        Properties props = System.getProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.port", mailPort);
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.auth", "true");
+
+        Session session = Session.getDefaultInstance(props);
+        try {
+            MimeMessage msg = new MimeMessage(session);
+            msg.setFrom(new InternetAddress("ewhafint@gmail.com", "FinTribe"));
+            msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            msg.setSubject(title);
+            msg.setContent(content, "text/html;charset=UTF-8");
+
+            Transport transport = session.getTransport();
+            try {
+                transport.connect(mailHost, mailUserName, mailPassword);
+                transport.sendMessage(msg, msg.getAllRecipients());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // 임시 비밀번호 만들기
