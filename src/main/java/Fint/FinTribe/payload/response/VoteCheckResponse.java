@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -19,6 +20,7 @@ public class VoteCheckResponse {
     private Double agreement;
     private Double disagreement;
     private Double ratio;
+    private List<String> voteParticipants;
     public VoteCheckResponse(String msg){
         voteId = msg;
     }
