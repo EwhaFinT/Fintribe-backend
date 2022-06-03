@@ -317,7 +317,8 @@ public class CommunityService {
                         resaleDateRepository.save(resaleDate);
                     }
                     else{
-                        saveResaleDate(vote.getEndTime().toLocalDate().plusDays(1L), communityRepository.findById(vote.getCommunityId()).get().getArtId());
+                        ResaleDate resaleDate = saveResaleDate(vote.getEndTime().toLocalDate().plusDays(1L), communityRepository.findById(vote.getCommunityId()).get().getArtId());
+                        resaleDateRepository.save(resaleDate);
                     }
                 }
             }
@@ -354,11 +355,11 @@ public class CommunityService {
     }
 
     //userId로 지분 조회
-    private Double getRatio(ObjectId communityId, ObjectId userId){
-        Optional<Vote> voteOptional = voteRepository.findVoteByCommunityId(communityId);
+    private Double getRatio(ObjectId voteId, ObjectId userId){
+        Optional<Vote> voteOptional = voteRepository.findById(voteId);
         AtomicReference<Double> ratio = new AtomicReference<>(0.0);
         if(voteOptional.isPresent()){
-            communityRepository.findById(communityId).ifPresent(community -> {
+            communityRepository.findById(voteOptional.get().getCommunityId()).ifPresent(community -> {
                 int userIndex = community.getUserIdList().indexOf(userId);
                 ratio.set(community.getRatioList().get(userIndex));
             });
