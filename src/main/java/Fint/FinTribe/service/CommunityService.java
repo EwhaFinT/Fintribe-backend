@@ -344,9 +344,14 @@ public class CommunityService {
             return new VoteCheckResponse("No such vote");
         }
         Vote vote = voteOp.get();
+        List<ParticipantVote> participants = participantVoteRepository.findByVoteId(vote.getVoteId());
+        List<String> responseParticipants = new ArrayList<>();
+        for(ParticipantVote participant : participants){
+            responseParticipants.add(participant.getUserId().toString());
+        }
         return new VoteCheckResponse(vote.getVoteId().toString(), vote.getUserId().toString(), vote.getIdentity(),
                 vote.getTitle(), vote.getResalePrice(), vote.getStartTime(), vote.getEndTime(),
-                vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement(), ratio);
+                vote.getIsDeleted(), vote.getAgreement(), vote.getDisagreement(), ratio, responseParticipants);
     }
 
     //Community 생성
