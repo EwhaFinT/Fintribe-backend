@@ -339,11 +339,11 @@ public class CommunityService {
     //Vote 조회
     public VoteCheckResponse getVoteInformation(String communityId, String userId){
         Optional<Vote> voteOp = voteRepository.findVoteByCommunityId(new ObjectId(communityId));
-        Double ratio = getRatio(new ObjectId(communityId), new ObjectId(userId));
         if(!voteOp.isPresent()){
             return new VoteCheckResponse("No such vote");
         }
         Vote vote = voteOp.get();
+        Double ratio = getRatio(vote.getVoteId(), new ObjectId(userId));
         List<ParticipantVote> participants = participantVoteRepository.findByVoteId(vote.getVoteId());
         List<String> responseParticipants = new ArrayList<>();
         for(ParticipantVote participant : participants){
