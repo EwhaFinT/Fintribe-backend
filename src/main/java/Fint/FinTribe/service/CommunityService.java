@@ -288,7 +288,7 @@ public class CommunityService {
     //Vote 생성
     public VoteResponse createVote(VoteProposalRequest voteRequest){
         int flag = countArtwork(voteRequest.getEndTime());
-        if(flag < 3){
+        if(flag < 3 && voteRequest.getEndTime().isAfter(LocalDateTime.now())){
             voteRepository.save(voteProposalRequestToEntity(voteRequest));
             return new VoteResponse("success");
         }
@@ -338,11 +338,15 @@ public class CommunityService {
 
     //Vote 조회
     public VoteCheckResponse getVoteInformation(String communityId, String userId){
-        Optional<Vote> voteOp = voteRepository.findVoteByCommunityId(new ObjectId(communityId));
+        Optional<Vote> voteOp = voteRepository.findVoteByCommunityIdAndIsDeleted(new ObjectId(communityId), false);
         if(!voteOp.isPresent()){
             return new VoteCheckResponse("No such vote");
         }
         Vote vote = voteOp.get();
+        if(vote.getEndTime().isBefore(LocalDateTime.now())){
+            vote.setIsDeleted(true);
+            return new VoteCheckResponse("No such vote");
+        }
         Double ratio = getRatio(vote.getVoteId(), new ObjectId(userId));
         List<ParticipantVote> participants = participantVoteRepository.findByVoteId(vote.getVoteId());
         List<String> responseParticipants = new ArrayList<>();
