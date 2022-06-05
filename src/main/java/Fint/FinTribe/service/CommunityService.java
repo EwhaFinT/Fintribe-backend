@@ -290,14 +290,14 @@ public class CommunityService {
         int flag = countArtwork(voteRequest.getEndTime());
 
         if(voteRepository.findVoteByCommunityIdAndIsDeleted(new ObjectId(voteRequest.getCommunityId()), false).isPresent()){
-            return new VoteResponse("더이상 투표를 제안할 수 없습니다.");
+            return new VoteResponse(-1);
         }
         else if(flag < 3 && voteRequest.getEndTime().isAfter(LocalDateTime.now())){
             voteRepository.save(voteProposalRequestToEntity(voteRequest));
-            return new VoteResponse("success");
+            return new VoteResponse(0);
         }
         else
-            return new VoteResponse("경매 가능한 일자가 아닙니다.");
+            return new VoteResponse(1);
     }
 
     //Vote 참여
@@ -335,9 +335,9 @@ public class CommunityService {
             }
             voteRepository.save(vote);
             participantVoteRepository.save(newParticipant);
-            return new VoteResponse("success");
+            return new VoteResponse(0);
         }
-        return new VoteResponse("duplicate vote");
+        return new VoteResponse(1);
     }
 
     //Vote 조회
