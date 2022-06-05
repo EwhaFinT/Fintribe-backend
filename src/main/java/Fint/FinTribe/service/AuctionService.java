@@ -320,7 +320,7 @@ public class AuctionService {
                         Optional<User> user = userService.findByUserId(participantUserId.get(j));
                         if(!user.isPresent()) continue;
                         userService.buyArtwork(user.get(), art.get().getArtId());
-                        userService.sendAuctionAlarm(user.get().getName(), art.get().getArtName(), art.get().getPaint(), art.get().getPrice(), user.get().getEmail());
+                        userService.sendAuctionAlarm(user.get().getName(), art.get().getArtName(), art.get().getPaint(), price.getAuctionPrice(), user.get().getEmail());
                     }
 
                     // 판매 상태 변경 및 커뮤니티 생성
