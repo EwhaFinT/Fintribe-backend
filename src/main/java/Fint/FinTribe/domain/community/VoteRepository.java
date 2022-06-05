@@ -11,6 +11,6 @@ import java.util.Optional;
 public interface VoteRepository extends MongoRepository<Vote, ObjectId> {
     @Query("{'endTime': ?0}")
     List<Vote> findVotesByEndTime(LocalDateTime endTime);
-    @Query("{'communityId': ?0}")
-    Optional<Vote> findVoteByCommunityId(ObjectId communityId);
+    @Query("{$and:[{'communityId': ?0}, {'isDeleted': ?1}]}")
+    Optional<Vote> findVoteByCommunityIdAndIsDeleted(ObjectId communityId, Boolean isDeleted);
 }
