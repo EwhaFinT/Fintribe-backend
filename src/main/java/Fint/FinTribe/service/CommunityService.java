@@ -288,7 +288,11 @@ public class CommunityService {
     //Vote 생성
     public VoteResponse createVote(VoteProposalRequest voteRequest){
         int flag = countArtwork(voteRequest.getEndTime());
-        if(flag < 3 && voteRequest.getEndTime().isAfter(LocalDateTime.now())){
+
+        if(voteRepository.findVoteByCommunityIdAndIsDeleted(new ObjectId(voteRequest.getCommunityId()), false).isPresent()){
+            return new VoteResponse("더이상 투표를 제안할 수 없습니다.");
+        }
+        else if(flag < 3 && voteRequest.getEndTime().isAfter(LocalDateTime.now())){
             voteRepository.save(voteProposalRequestToEntity(voteRequest));
             return new VoteResponse("success");
         }
